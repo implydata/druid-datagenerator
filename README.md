@@ -190,9 +190,9 @@ _kafka_ targets write records to a Kafka topic and have this format:
 "target": {
   "type": "kafka",
   "endpoint": "<ip address and optional port>",
-  "topic": <topic name>,
-  "security_protocol": <protocol designation>,
-  "compression_type": <compression type designation>
+  "topic": "<topic name>",
+  "security_protocol": "<protocol designation>",
+  "compression_type": "<compression type designation>"
 }
 ```
 
