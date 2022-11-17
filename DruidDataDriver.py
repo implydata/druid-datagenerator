@@ -366,7 +366,7 @@ class ElementNow: # The __time dimension
     def __str__(self):
         return 'ElementNow()'
     def get_json_field_string(self):
-        now = global_clock.now().isoformat()
+        now = global_clock.now().isoformat()[:-3]
         return '"__time":"'+now+'"'
 
 class ElementEnum: # enumeration dimensions
@@ -585,7 +585,7 @@ class ElementTimestamp(ElementBase):
         return 'ElementTimestamp(name='+self.name+', value_distribution='+str(self.value_distribution)+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+')'
 
     def get_stochastic_value(self):
-        return datetime.fromtimestamp(self.value_distribution.get_sample()).isoformat()
+        return datetime.fromtimestamp(self.value_distribution.get_sample()).isoformat()[:-3]
 
     def get_json_field_string(self):
         if random.random() < self.percent_nulls:
