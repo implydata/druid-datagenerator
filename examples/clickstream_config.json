@@ -1,7 +1,7 @@
 {
   "target": {"type": "stdout"},
   "emitters": [
-  {
+    {
     "name": "enter",
     "dimensions": [
       {"type": "variable", "name": "client_ip", "variable": "client_ip"},
@@ -11,9 +11,28 @@
       {"type": "variable", "name": "referrer", "variable": "referrer"},
       {"type": "enum", "name": "event_type", "values": ["page_view"],"cardinality_distribution": {"type": "constant", "value": 0}}
     ]
-  },
-  {
-      "name": "hit",
+    },
+    {
+    "name": "hit",
+    "dimensions": [
+      {"type": "variable", "name": "client_ip", "variable": "client_ip"},
+      {"type": "variable", "name": "client_device","variable": "client_device"},
+      {"type": "variable", "name": "client_lang", "variable": "client_lang"},
+      {"type": "variable", "name": "client_country", "variable": "client_country"},
+      {"type": "variable", "name": "referrer", "variable": "referrer"},
+      {"type": "enum", "name": "event_type",
+        "values": [
+          "page_view",
+          "search",
+          "purchase",
+          "exception"
+        ],
+        "cardinality_distribution": {"type": "uniform", "min": 0, "max": 3}
+        }
+      ]
+    },
+    {
+      "name": "purchase",
       "dimensions": [
         {"type": "variable", "name": "client_ip", "variable": "client_ip"},
         {"type": "variable", "name": "client_device","variable": "client_device"},
@@ -23,42 +42,23 @@
         {"type": "enum", "name": "event_type",
           "values": [
             "page_view",
-            "search",
-            "purchase",
-            "exception"
+            "purchase"
           ],
-          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 3}
-          }
-        ]
-      },
-      {
-        "name": "purchase",
-        "dimensions": [
-          {"type": "variable", "name": "client_ip", "variable": "client_ip"},
-          {"type": "variable", "name": "client_device","variable": "client_device"},
-          {"type": "variable", "name": "client_lang", "variable": "client_lang"},
-          {"type": "variable", "name": "client_country", "variable": "client_country"},
-          {"type": "variable", "name": "referrer", "variable": "referrer"},
-          {"type": "enum", "name": "event_type",
-            "values": [
-              "page_view",
-              "purchase"
-            ],
-            "cardinality_distribution": {"type": "uniform", "min": 0, "max": 1}
-          }
-        ]
-      },
-      {
-        "name": "leave",
-        "dimensions": [
-          {"type": "variable", "name": "client_ip", "variable": "client_ip"},
-          {"type": "variable", "name": "client_device","variable": "client_device"},
-          {"type": "variable", "name": "client_lang", "variable": "client_lang"},
-          {"type": "variable", "name": "client_country", "variable": "client_country"},
-          {"type": "variable", "name": "referrer", "variable": "referrer"},
-          {"type": "enum", "name": "event_type", "values": ["exit"],"cardinality_distribution": {"type": "constant", "value": 0}}
-        ]
-      }
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max": 1}
+        }
+      ]
+    },
+    {
+      "name": "leave",
+      "dimensions": [
+        {"type": "variable", "name": "client_ip", "variable": "client_ip"},
+        {"type": "variable", "name": "client_device","variable": "client_device"},
+        {"type": "variable", "name": "client_lang", "variable": "client_lang"},
+        {"type": "variable", "name": "client_country", "variable": "client_country"},
+        {"type": "variable", "name": "referrer", "variable": "referrer"},
+        {"type": "enum", "name": "event_type", "values": ["exit"],"cardinality_distribution": {"type": "constant", "value": 0}}
+      ]
+    }
   ],
   "interarrival": {"type": "exponential", "mean": 0.1},
   "states": [
@@ -184,7 +184,7 @@
     },
     {
       "name": "medium widget",
-      "emitter": "hit",
+      "emitter": "purchase",
       "delay": {"type": "exponential", "mean": 20},
       "transitions": [
         {"next": "leave", "probability": 0.3},
@@ -194,7 +194,7 @@
     },
     {
       "name": "small widget",
-      "emitter": "hit",
+      "emitter": "purchase",
       "delay": {"type": "exponential", "mean": 25},
       "transitions": [
         {"next": "leave", "probability": 0.2},
