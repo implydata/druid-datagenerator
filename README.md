@@ -83,7 +83,7 @@ The config file has the following format:
 {
   "target": {...},
   "emitters": [...],
-  "interarrival": {...}
+  "interarrival": {...},
   "states": [...]
 }
 ```
@@ -260,6 +260,7 @@ Enums have the following format:
   "name": "<dimension name>",
   "values": [...],
   "cardinality_distribution": <distribution descriptor object>,
+  "percent_missing": <percentage value>,
   "percent_nulls": <percentage value>
 }
 ```
@@ -267,7 +268,8 @@ Enums have the following format:
 Where:
 - <i>name</i> is the name of the dimension
 - <i>values</i> is a list of the values
-- <i>cardinality_distribution</i> informs the cardinality selection of the generated values (omit if cardinality is zero)
+- <i>cardinality_distribution</i> informs the cardinality selection of the generated values
+- <i>percent_missing</i> a value in the range of 0.0 and 100.0 (inclusive) indicating the stochastic frequency for omitting this dimension from records (optional - the default value is 0.0 if omitted)
 - <i>percent_nulls</i> a value in the range of 0.0 and 100.0 (inclusive) indicating the stochastic frequency for generating null values (optional - the default value is 0.0 if omitted)
 
 
@@ -283,6 +285,7 @@ String dimension speficiation entries have the following format:
   "cardinality": <int value>,
   "cardinality_distribution": <distribution descriptor object>,
   "chars": "<list characters used to build strings>",
+  "percent_missing": <percentage value>,
   "percent_nulls": <percentage value>
 }
 ```
@@ -293,6 +296,7 @@ Where:
 - <i>cardinality</i> indicates the number of unique values for this dimension (zero for unconstrained cardinality)
 - <i>cardinality_distribution</i> informs the cardinality selection of the generated values (omit if cardinality is zero)
 - <i>chars</i> (optional) is a list (e.g., "ABC123") of characters that may be used to generate strings - if not specified, all printable characters will be used
+- <i>percent_missing</i> a value in the range of 0.0 and 100.0 (inclusive) indicating the stochastic frequency for omitting this dimension from records (optional - the default value is 0.0 if omitted)
 - <i>percent_nulls</i> a value in the range of 0.0 and 100.0 (inclusive) indicating the stochastic frequency for generating null values (optional - the default value is 0.0 if omitted)
 
 ##### { "type": "int" ...}
@@ -306,6 +310,7 @@ Integer dimension specification entries have the following format:
   "distribution": <distribution descriptor object>,
   "cardinality": <int value>,
   "cardinality_distribution": <distribution descriptor object>,
+  "percent_missing": <percentage value>,
   "percent_nulls": <percentage value>
 }
 ```
@@ -315,6 +320,7 @@ Where:
 - <i>distribution</i> describes the distribution of values the driver generates (rounded to the nearest int value)
 - <i>cardinality</i> indicates the number of unique values for this dimension (zero for unconstrained cardinality)
 - <i>cardinality_distribution</i> skews the cardinality selection of the generated values
+- <i>percent_missing</i> a value in the range of 0.0 and 100.0 (inclusive) indicating the stochastic frequency for omitting this dimension from records (optional - the default value is 0.0 if omitted)
 - <i>percent_nulls</i> a value in the range of 0.0 and 100.0 (inclusive) indicating the stochastic frequency for generating null values (optional - the default value is 0.0 if omitted)
 
 ###### { "type": "float" ...}
@@ -328,6 +334,7 @@ Float dimension specification entries have the following format:
   "distribution": <distribution descriptor object>,
   "cardinality": <int value>,
   "cardinality_distribution": <distribution descriptor object>,
+  "percent_missing": <percentage value>,
   "percent_nulls": <percentage value>
 }
 ```
@@ -337,6 +344,7 @@ Where:
 - <i>distribution</i> describes the distribution of float values the driver generates
 - <i>cardinality</i> indicates the number of unique values for this dimension (zero for unconstrained cardinality)
 - <i>cardinality_distribution</i> skews the cardinality selection of the generated values
+- <i>percent_missing</i> a value in the range of 0.0 and 100.0 (inclusive) indicating the stochastic frequency for omitting this dimension from records (optional - the default value is 0.0 if omitted)
 - <i>percent_nulls</i> a value in the range of 0.0 and 100.0 (inclusive) indicating the stochastic frequency for generating null values (optional - the default value is 0.0 if omitted)
 
 ###### { "type": "timestamp" ...}
@@ -350,6 +358,7 @@ Timestamp dimension specification entries have the following format:
   "distribution": <distribution descriptor object>,
   "cardinality": <int value>,
   "cardinality_distribution": <distribution descriptor object>,
+  "percent_missing": <percentage value>,
   "percent_nulls": <percentage value>
 }
 ```
@@ -359,6 +368,7 @@ Where:
 - <i>distribution</i> describes the distribution of timestamp values the driver generates
 - <i>cardinality</i> indicates the number of unique values for this dimension (zero for unconstrained cardinality)
 - <i>cardinality_distribution</i> skews the cardinality selection of the generated timestamps (optional - omit for unconstrained cardinality)
+- <i>percent_missing</i> a value in the range of 0.0 and 100.0 (inclusive) indicating the stochastic frequency for omitting this dimension from records (optional - the default value is 0.0 if omitted)
 - <i>percent_nulls</i> a value in the range of 0.0 and 100.0 (inclusive) indicating the stochastic frequency for generating null values (optional - the default value is 0.0 if omitted)
 
 
@@ -373,6 +383,7 @@ IP address dimension specification entries have the following format:
   "distribution": <distribution descriptor object>,
   "cardinality": <int value>,
   "cardinality_distribution": <distribution descriptor object>,
+  "percent_missing": <percentage value>,
   "percent_nulls": <percentage value>
 }
 ```
@@ -382,6 +393,7 @@ Where:
 - <i>distribution</i> describes the distribution of IP address values the driver generates
 - <i>cardinality</i> indicates the number of unique values for this dimension (zero for unconstrained cardinality)
 - <i>cardinality_distribution</i> skews the cardinality selection of the generated timestamps (optional - omit for unconstrained cardinality)
+- <i>percent_missing</i> a value in the range of 0.0 and 100.0 (inclusive) indicating the stochastic frequency for omitting this dimension from records (optional - the default value is 0.0 if omitted)
 - <i>percent_nulls</i> a value in the range of 0.0 and 100.0 (inclusive) indicating the stochastic frequency for generating null values (optional - the default value is 0.0 if omitted)
 
 
@@ -413,7 +425,7 @@ See the previous section on _Distribution descriptor objects_ for the syntax.
 
 ### "states": []
 
-The _states_ list is a list of state object.
+The _states_ list is a list of state objects.
 These state objects describe each of the states in a probabilistic state machine.
 The first state in the list is the initial state in the state machine, or in other words, the state that the machine enters initially.
 

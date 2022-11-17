@@ -71,6 +71,8 @@ class FutureEvent:
         self.event = threading.Event()
     def get_time(self):
         return self.t
+    def get_name(self):
+        return self.name
     def __lt__(self, other):
         return self.t < other.t
     def __eq__(self, other):
@@ -90,52 +92,56 @@ class Clock:
     future_events = SortedList()
     active_threads = 0
     lock = threading.Lock()
+    sleep_lock = threading.Lock()
 
     def __init__(self, time_type):
         self.time_type = time_type
 
+    def __str__(self):
+        s = 'Clock(time='+str(self.sim_time)
+        for e in self.future_events:
+            s += ', '+str(e)
+        s += ')'
+        return s
+
     def activate_thread(self):
         if self.time_type == 'SIM':
             self.lock.acquire()
-            #print('activating '+threading.current_thread().name)
             self.active_threads += 1
             self.lock.release()
 
     def deactivate_thread(self):
         if self.time_type == 'SIM':
             self.lock.acquire()
-            #print('deactivating '+threading.current_thread().name)
             self.active_threads -= 1
-            #print('active_threads = '+str(self.active_threads))
-            if self.active_threads == 0:
-                self.resume(self.remove_event())
+            self.lock.release()
+
+    def end_thread(self):
+        if self.time_type == 'SIM':
+            self.lock.acquire()
+            self.active_threads -= 1
+            if len(self.future_events) > 0:
+                self.remove_event().resume()
             self.lock.release()
 
     def release_all(self):
         if self.time_type == 'SIM':
             self.lock.acquire()
             #print('release_all - active_threads = '+str(self.active_threads))
-            self.active_threads += 1 # increment this so that the last thread doesn't hit the FEL
-            while self.active_threads > 1:
-                for e in self.future_events:
-                    self.resume(e)
-                self.lock.release()
-                time.sleep(0)
-                self.lock.acquire()
-
-            self.active_threads -= 1
+            for e in self.future_events:
+                e.resume()
             self.lock.release()
 
     def add_event(self, future_t):
         this_event = FutureEvent(future_t)
         self.future_events.add(this_event)
-        #print('add_event - adding '+str(this_event))
+        #print('add_event (after) '+threading.current_thread().name+' - '+str(self))
         return this_event
 
     def remove_event(self):
+        #print('remove_event (before) '+threading.current_thread().name+' - '+str(self))
         next_event = self.future_events[0]
         self.future_events.remove(next_event)
-        #print('remove_event - removing '+str(next_event))
         return next_event
 
     def pause(self, event):
@@ -156,25 +162,28 @@ class Clock:
         return t
 
     def sleep(self, delta):
-        #print(threading.current_thread().name+" begin sleep "+str(self.sim_time)+" + "+str(delta))
         if self.time_type == 'SIM': # Simulated time
             self.lock.acquire()
-
+            #print(threading.current_thread().name+" begin sleep "+str(self.sim_time)+" + "+str(delta))
             this_event = self.add_event(self.sim_time + timedelta(seconds=delta))
-            if self.active_threads > 1:
-                self.pause(this_event)
-            else:
+            #print(threading.current_thread().name+" active threads "+str(self.active_threads))
+            if self.active_threads == 1:
                 next_event = self.remove_event()
-                if this_event != next_event:
+                if str(this_event) != str(next_event):
                     self.resume(next_event)
+                    #print(threading.current_thread().name+" start pause if")
                     self.pause(this_event)
-
+                    #print(threading.current_thread().name+" end pause if")
+            else:
+                #print(threading.current_thread().name+" start pause else")
+                self.pause(this_event)
+                #print(threading.current_thread().name+" end pause else")
             self.sim_time = this_event.get_time()
+            #print(threading.current_thread().name+" end sleep "+str(self.sim_time))
             self.lock.release()
 
         else: # Real time
             time.sleep(delta)
-        #print(threading.current_thread().name+" end sleep "+str(self.sim_time))
 
 global_clock = Clock(time_type)
 
@@ -189,7 +198,7 @@ class PrintStdout:
             print(str(record))
             sys.stdout.flush()
     def __str__(self):
-        return 'PrintStdout()'
+        return '#printStdout()'
 
 class PrintFile:
     f = None
@@ -356,6 +365,10 @@ class ElementEnum: # enumeration dimensions
             self.percent_nulls = desc['percent_nulls'] / 100.0
         else:
             self.percent_nulls = 0.0
+        if 'percent_missing' in desc.keys():
+            self.percent_missing = desc['percent_missing'] / 100.0
+        else:
+            self.percent_missing = 0.0
         self.cardinality = desc['values']
         if 'cardinality_distribution' not in desc.keys():
             print('Element '+self.name+' specifies a cardinality without a cardinality distribution')
@@ -366,19 +379,22 @@ class ElementEnum: # enumeration dimensions
         return 'ElementEnum(name='+self.name+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+')'
 
     def get_stochastic_value(self):
-        if random.random() < self.percent_nulls:
-            value = 'null'
-        else:
-            index = int(self.cardinality_distribution.get_sample())
-            if index < 0:
-                index = 0
-            if index >= len(self.cardinality):
-                index = len(self.cardinality)-1
-            value = self.cardinality[index]
-        return value
+        index = int(self.cardinality_distribution.get_sample())
+        if index < 0:
+            index = 0
+        if index >= len(self.cardinality):
+            index = len(self.cardinality)-1
+        return self.cardinality[index]
 
     def get_json_field_string(self):
-        return '"'+self.name+'":"'+str(self.get_stochastic_value())+'"'
+        if random.random() < self.percent_nulls:
+            s = '"'+self.name+'": null'
+        else:
+            s = '"'+self.name+'":"'+str(self.get_stochastic_value())+'"'
+        return s
+
+    def is_missing(self):
+        return random.random() < self.percent_missing
 
 class ElementVariable: # Variable dimensions
     def __init__(self, desc):
@@ -400,6 +416,10 @@ class ElementBase: # Base class for the remainder of the dimensions
             self.percent_nulls = desc['percent_nulls'] / 100.0
         else:
             self.percent_nulls = 0.0
+        if 'percent_missing' in desc.keys():
+            self.percent_missing = desc['percent_missing'] / 100.0
+        else:
+            self.percent_missing = 0.0
         cardinality = desc['cardinality']
         if cardinality == 0:
             self.cardinality = None
@@ -423,16 +443,23 @@ class ElementBase: # Base class for the remainder of the dimensions
         pass
 
     def get_json_field_string(self):
-        if self.cardinality is None:
-            value = self.get_stochastic_value()
+        if random.random() < self.percent_nulls:
+            s = '"'+self.name+'": null'
         else:
-            index = int(self.cardinality_distribution.get_sample())
-            if index < 0:
-                index = 0
-            if index >= len(self.cardinality):
-                index = len(self.cardinality)-1
-            value = self.cardinality[index]
-        return '"'+self.name+'":'+str(value)
+            if self.cardinality is None:
+                value = self.get_stochastic_value()
+            else:
+                index = int(self.cardinality_distribution.get_sample())
+                if index < 0:
+                    index = 0
+                if index >= len(self.cardinality):
+                    index = len(self.cardinality)-1
+                value = self.cardinality[index]
+            s = '"'+self.name+'":'+str(value)
+        return s
+
+    def is_missing(self):
+        return random.random() < self.percent_missing
 
 
 class ElementString(ElementBase):
@@ -448,24 +475,24 @@ class ElementString(ElementBase):
         return 'ElementString(name='+self.name+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+', chars='+self.chars+')'
 
     def get_stochastic_value(self):
-        if random.random() < self.percent_nulls:
-            value = 'null'
-        else:
-            length = int(self.length_distribution.get_sample())
-            value = ''.join(random.choices(list(self.chars), k=length))
-        return value
+        length = int(self.length_distribution.get_sample())
+        return ''.join(random.choices(list(self.chars), k=length))
 
     def get_json_field_string(self):
-        if self.cardinality is None:
-            value = self.get_stochastic_value()
+        if random.random() < self.percent_nulls:
+            s = '"'+self.name+'": null'
         else:
-            index = int(self.cardinality_distribution.get_sample())
-            if index < 0:
-                index = 0
-            if index >= len(self.cardinality):
-                index = len(self.cardinality)-1
-            value = self.cardinality[index]
-        return '"'+self.name+'":"'+str(value)+'"'
+            if self.cardinality is None:
+                value = self.get_stochastic_value()
+            else:
+                index = int(self.cardinality_distribution.get_sample())
+                if index < 0:
+                    index = 0
+                if index >= len(self.cardinality):
+                    index = len(self.cardinality)-1
+                value = self.cardinality[index]
+            s = '"'+self.name+'":"'+str(value)+'"'
+        return s
 
 class ElementInt(ElementBase):
     def __init__(self, desc):
@@ -476,11 +503,7 @@ class ElementInt(ElementBase):
         return 'ElementInt(name='+self.name+', value_distribution='+str(self.value_distribution)+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+')'
 
     def get_stochastic_value(self):
-        if random.random() < self.percent_nulls:
-            value = 'null'
-        else:
-            value = int(self.value_distribution.get_sample())
-        return value
+        return int(self.value_distribution.get_sample())
 
 class ElementFloat(ElementBase):
     def __init__(self, desc):
@@ -491,11 +514,7 @@ class ElementFloat(ElementBase):
         return 'ElementFloat(name='+self.name+', value_distribution='+str(self.value_distribution)+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+')'
 
     def get_stochastic_value(self):
-        if random.random() < self.percent_nulls:
-            value = 'null'
-        else:
-            value = float(self.value_distribution.get_sample())
-        return value
+        return float(self.value_distribution.get_sample())
 
 class ElementTimestamp(ElementBase):
     def __init__(self, desc):
@@ -505,6 +524,10 @@ class ElementTimestamp(ElementBase):
             self.percent_nulls = desc['percent_nulls'] / 100.0
         else:
             self.percent_nulls = 0.0
+        if 'percent_missing' in desc.keys():
+            self.percent_missing = desc['percent_missing'] / 100.0
+        else:
+            self.percent_missing = 0.0
         cardinality = desc['cardinality']
         if cardinality == 0:
             self.cardinality = None
@@ -527,23 +550,26 @@ class ElementTimestamp(ElementBase):
         return 'ElementTimestamp(name='+self.name+', value_distribution='+str(self.value_distribution)+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+')'
 
     def get_stochastic_value(self):
-        if random.random() < self.percent_nulls:
-            value = 'null'
-        else:
-            value = datetime.fromtimestamp(self.value_distribution.get_sample()).isoformat()
-        return value
+        return datetime.fromtimestamp(self.value_distribution.get_sample()).isoformat()
 
     def get_json_field_string(self):
-        if self.cardinality is None:
-            value = self.get_stochastic_value()
+        if random.random() < self.percent_nulls:
+            s = '"'+self.name+'": null'
         else:
-            index = int(self.cardinality_distribution.get_sample())
-            if index < 0:
-                index = 0
-            if index >= len(self.cardinality):
-                index = len(self.cardinality)-1
-            value = self.cardinality[index]
-        return '"'+self.name+'":"'+str(value)+'"'
+            if self.cardinality is None:
+                value = self.get_stochastic_value()
+            else:
+                index = int(self.cardinality_distribution.get_sample())
+                if index < 0:
+                    index = 0
+                if index >= len(self.cardinality):
+                    index = len(self.cardinality)-1
+                value = self.cardinality[index]
+            s = '"'+self.name+'":"'+str(value)+'"'
+        return s
+
+    def is_missing(self):
+        return random.random() < self.percent_missing
 
 class ElementIPAddress(ElementBase):
     def __init__(self, desc):
@@ -554,25 +580,24 @@ class ElementIPAddress(ElementBase):
         return 'ElementIPAddress(name='+self.name+', value_distribution='+str(self.value_distribution)+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+')'
 
     def get_stochastic_value(self):
-        if random.random() < self.percent_nulls:
-            value = 'null'
-        else:
-            value = int(self.value_distribution.get_sample())
-            value =  str((value & 0xFF000000) >> 24)+'.'+str((value & 0x00FF0000) >> 16)+'.'+str((value & 0x0000FF00) >> 8)+'.'+str(value & 0x000000FF)
-        return value
-    
-    def get_json_field_string(self):
-        if self.cardinality is None:
-            value = self.get_stochastic_value()
-        else:
-            index = int(self.cardinality_distribution.get_sample())
-            if index < 0:
-                index = 0
-            if index >= len(self.cardinality):
-                index = len(self.cardinality)-1
-            value = self.cardinality[index]
-        return '"'+self.name+'":"'+str(value)+'"'
+        value = int(self.value_distribution.get_sample())
+        return str((value & 0xFF000000) >> 24)+'.'+str((value & 0x00FF0000) >> 16)+'.'+str((value & 0x0000FF00) >> 8)+'.'+str(value & 0x000000FF)
 
+    def get_json_field_string(self):
+        if random.random() < self.percent_nulls:
+            s = '"'+self.name+'": null'
+        else:
+            if self.cardinality is None:
+                value = self.get_stochastic_value()
+            else:
+                index = int(self.cardinality_distribution.get_sample())
+                if index < 0:
+                    index = 0
+                if index >= len(self.cardinality):
+                    index = len(self.cardinality)-1
+                value = self.cardinality[index]
+            s = '"'+self.name+'":"'+str(value)+'"'
+        return s
 
 def parse_element(desc):
     if desc['type'].lower() == 'enum':
@@ -655,9 +680,6 @@ class State:
     def get_next_state_name(self):
         return random.choices(self.transistion_states, weights=self.transistion_probabilities, k=1)[0]
 
-    def visit_state(self):
-        create_record(self.emitter)
-
 
 state_desc = config['states']
 initial_state = None
@@ -691,7 +713,8 @@ def create_record(dimensions, variables):
         if isinstance(element, ElementVariable):
             json_string += element.get_json_field_string(variables) + ','
         else:
-            json_string += element.get_json_field_string() + ','
+            if isinstance(element, ElementNow) or not element.is_missing():
+                json_string += element.get_json_field_string() + ','
     json_string = json_string[:-1] + '}'
     return json_string
 
@@ -706,6 +729,7 @@ def worker_thread(target_printer, states, initial_state):
     global record_count
     global total_recs
     global global_clock
+    #print('Thread '+threading.current_thread().name+' starting...')
     global_clock.activate_thread()
     current_state = initial_state
     variables = {}
@@ -717,7 +741,8 @@ def worker_thread(target_printer, states, initial_state):
         if total_recs is not None and record_count >= total_recs:
             thread_end_event.set()
             break
-        global_clock.sleep(float(current_state.delay.get_sample()))
+        delta = float(current_state.delay.get_sample())
+        global_clock.sleep(delta)
         if total_recs is not None and record_count >= total_recs:
             thread_end_event.set()
             break
@@ -725,11 +750,14 @@ def worker_thread(target_printer, states, initial_state):
         if next_state_name.lower() == 'stop':
             break
         current_state = states[next_state_name]
-    global_clock.deactivate_thread()
+
+    #print('Thread '+threading.current_thread().name+' done!')
+    global_clock.end_thread()
 
 def spawning_thread(target_printer, rate_delay, states, initial_state):
     global thread_end_event
     global global_clock
+    #print('Thread '+threading.current_thread().name+' starting...')
     global_clock.activate_thread()
     # Spawn the workers in a separate thread so we can stop the whole thing in the middle of spawning if necessary
     count = 0
@@ -740,7 +768,8 @@ def spawning_thread(target_printer, rate_delay, states, initial_state):
         t = threading.Thread(target=worker_thread, args=(target_printer, states, initial_state, ), name=thread_name, daemon=True)
         t.start()
         global_clock.sleep(float(rate_delay.get_sample()))
-    global_clock.deactivate_thread()
+    global_clock.end_thread()
+    #print('Thread '+threading.current_thread().name+' done!')
 
 thrd = threading.Thread(target=spawning_thread, args=(target_printer, rate_delay, states, initial_state, ), name='Spawning', daemon=True)
 thrd.start()
