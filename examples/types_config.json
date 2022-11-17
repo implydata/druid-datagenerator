@@ -51,7 +51,8 @@
             "type": "normal",
             "mean": 5,
             "stddev": 2
-          }
+          },
+          "precision": 3
         },
         {
           "type": "timestamp",

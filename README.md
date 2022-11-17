@@ -347,7 +347,8 @@ Float dimension specification entries have the following format:
   "cardinality": <int value>,
   "cardinality_distribution": <distribution descriptor object>,
   "percent_missing": <percentage value>,
-  "percent_nulls": <percentage value>
+  "percent_nulls": <percentage value>,
+  "precision": <number of digits after decimal>
 }
 ```
 
@@ -358,6 +359,7 @@ Where:
 - <i>cardinality_distribution</i> skews the cardinality selection of the generated values
 - <i>percent_missing</i> a value in the range of 0.0 and 100.0 (inclusive) indicating the stochastic frequency for omitting this dimension from records (optional - the default value is 0.0 if omitted)
 - <i>percent_nulls</i> a value in the range of 0.0 and 100.0 (inclusive) indicating the stochastic frequency for generating null values (optional - the default value is 0.0 if omitted)
+- <i>precision</i> (optional) the number digits after the decimal - if omitted all digits are included
 
 ###### { "type": "timestamp" ...}
 

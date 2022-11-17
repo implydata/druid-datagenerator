@@ -519,6 +519,10 @@ class ElementInt(ElementBase):
 class ElementFloat(ElementBase):
     def __init__(self, desc):
         self.value_distribution = parse_distribution(desc['distribution'])
+        if 'precision' in desc:
+            self.precision = desc['precision']
+        else:
+            self.precision = None
         super().__init__(desc)
 
     def __str__(self):
@@ -526,6 +530,26 @@ class ElementFloat(ElementBase):
 
     def get_stochastic_value(self):
         return float(self.value_distribution.get_sample())
+
+    def get_json_field_string(self):
+        if random.random() < self.percent_nulls:
+            s = '"'+self.name+'": null'
+        else:
+            if self.cardinality is None:
+                value = self.get_stochastic_value()
+            else:
+                index = int(self.cardinality_distribution.get_sample())
+                if index < 0:
+                    index = 0
+                if index >= len(self.cardinality):
+                    index = len(self.cardinality)-1
+                value = self.cardinality[index]
+            if self.precision is None:
+                s = '"'+self.name+'":'+str(value)
+            else:
+                format = '%.'+str(self.precision)+'f'
+                s = '"'+self.name+'":'+str(format%value)
+        return s
 
 class ElementTimestamp(ElementBase):
     def __init__(self, desc):
