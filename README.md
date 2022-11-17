@@ -181,15 +181,27 @@ _file_ targets write records to the specified file and have the following format
 }
 ```
 
+Where:
+- <i>path</i> is the path and file name
+
 _kafka_ targets write records to a Kafka topic and have this format:
 
 ```
 "target": {
   "type": "kafka",
-  "endpoint": "<ip address and port>",
-  "topic": <topic name>
+  "endpoint": "<ip address and optional port>",
+  "topic": "<topic name>",
+  "security_protocol": "<protocol designation>",
+  "compression_type": "<compression type designation>"
 }
 ```
+
+Where:
+- <i>endpoint</i> is the IP address and optional port number (e.g., "127.0.0.1:9092") - if the port is omitted, 9092 is used
+- <i>topic</i> is the topic name as a string
+- <i>security_protocol</i> (optional) a protocol specifier ("PLAINTEXT" (default if omitted), "SSL", "SASL_PLAINTEXT", "SASL_SSL")
+- <i>compression_type</i> (optional) a compression specifier ("gzip", "snappy", "lz4") - if omitted, no compression is used
+
 
 ### "emitters": []
 

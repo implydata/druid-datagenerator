@@ -214,9 +214,10 @@ class PrintFile:
 class PrintKafka:
     producer = None
     topic = None
-    def __init__(self, endpoint, topic):
+    def __init__(self, endpoint, topic, security_protocol, compression_type):
+        #print('PrintKafka('+str(endpoint)+', '+str(topic)+', '+str(security_protocol)+', '+str(compression_type)+')')
         self.endpoint = endpoint
-        self.producer = KafkaProducer(bootstrap_servers=endpoint, value_serializer=lambda v: json.dumps(v).encode('utf-8'))
+        self.producer = KafkaProducer(bootstrap_servers=endpoint, security_protocol=security_protocol, compression_type=compression_type, value_serializer=lambda v: json.dumps(v).encode('utf-8'))
         self.topic = topic
     def __str__(self):
         return 'PrintKafka(endpoint='+self.endpoint+', topic='+self.topic+')'
@@ -234,15 +235,25 @@ elif target['type'].lower() == 'file':
         exit()
     target_printer = PrintFile(path)
 elif target['type'].lower() == 'kafka':
-    endpoint = target['endpoint']
-    topic = target['topic']
-    if endpoint is None:
+    if 'endpoint' in target.keys():
+        endpoint = target['endpoint']
+    else:
         print('Error: Kafka target requires an endpoint item')
         exit()
-    if topic is None:
+    if 'topic' in target.keys():
+        topic = target['topic']
+    else:
         print('Error: Kafka target requires a topic item')
         exit()
-    target_printer = PrintKafka(endpoint, topic)
+    if 'security_protocol' in target.keys():
+        security_protocol = target['security_protocol']
+    else:
+        security_protocol = 'PLAINTEXT'
+    if 'compression_type' in target.keys():
+        compression_type = target['compression_type']
+    else:
+        compression_type = None
+    target_printer = PrintKafka(endpoint, topic, security_protocol, compression_type)
 else:
     print('Error: Unknown target type "'+target['type']+'"')
     exit()
