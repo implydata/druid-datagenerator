@@ -429,6 +429,30 @@ Where:
 - <i>name</i> is the name of the dimension
 - <i>variable</i> is the name of variable with a previously set value
 
+###### { "type": "object" ...}
+
+Object dimensions create nested data. Object dimension specification entries have the following format:
+
+```
+{
+  "type": "object",
+  "name": "<dimension name>",
+  "cardinality": <int value>,
+  "cardinality_distribution": <distribution descriptor object>,
+  "percent_missing": <percentage value>,
+  "percent_nulls": <percentage value>,
+  "dimensions": [<list of dimensions nested within the object>]
+}
+```
+
+Where:
+- <i>name</i> is the name of the object
+- <i>cardinality</i> indicates the number of unique values for this dimension (zero for unconstrained cardinality)
+- <i>cardinality_distribution</i> skews the cardinality selection of the generated timestamps (optional - omit for unconstrained cardinality)
+- <i>percent_missing</i> a value in the range of 0.0 and 100.0 (inclusive) indicating the stochastic frequency for omitting this dimension from records (optional - the default value is 0.0 if omitted)
+- <i>percent_nulls</i> a value in the range of 0.0 and 100.0 (inclusive) indicating the stochastic frequency for generating null values (optional - the default value is 0.0 if omitted)
+- <i>dimensions</i> is a list of nested dimensions
+
 ### "interarrival":{}
 
 The _interarrival_ object is a _distribution descriptor object_ that describes the inter-arrival times (in seconds) between records that the driver generates.
