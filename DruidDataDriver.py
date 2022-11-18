@@ -665,10 +665,10 @@ class ElementObject():
                 self.cardinality.append(value)
 
     def __str__(self):
-        s = 'ElementObject(name='+self.name
+        s = 'ElementObject(name='+self.name+', dimensions=['
         for e in self.dimensions:
             s += ',' + str(e)
-        s += ')'
+        s += '])'
         return s
 
     def get_instance(self):
@@ -676,6 +676,80 @@ class ElementObject():
         for e in self.dimensions:
             s += e.get_json_field_string() + ','
         s = s[:-1] +  '}'
+        return s
+
+
+    def get_json_field_string(self):
+        if random.random() < self.percent_nulls:
+            s = '"'+self.name+'": null'
+        else:
+            if self.cardinality is None:
+                s = self.get_instance()
+            else:
+                index = int(self.cardinality_distribution.get_sample())
+                if index < 0:
+                    index = 0
+                if index >= len(self.cardinality):
+                    index = len(self.cardinality)-1
+                s = self.cardinality[index]
+        return s
+
+    def is_missing(self):
+        return random.random() < self.percent_missing
+
+class ElementList():
+    def __init__(self, desc):
+        self.name = desc['name']
+        self.elements = get_variables(desc['elements'])
+        self.length_distribution = parse_distribution(desc['length_distribution'])
+        self.selection_distribution = parse_distribution(desc['selection_distribution'])
+        if 'percent_nulls' in desc.keys():
+            self.percent_nulls = desc['percent_nulls'] / 100.0
+        else:
+            self.percent_nulls = 0.0
+        if 'percent_missing' in desc.keys():
+            self.percent_missing = desc['percent_missing'] / 100.0
+        else:
+            self.percent_missing = 0.0
+        cardinality = desc['cardinality']
+        if cardinality == 0:
+            self.cardinality = None
+            self.cardinality_distribution = None
+        else:
+            self.cardinality = []
+            if 'cardinality_distribution' not in desc.keys():
+                print('Element '+self.name+' specifies a cardinality without a cardinality distribution')
+                exit()
+            self.cardinality_distribution = parse_distribution(desc['cardinality_distribution'])
+            for i in range(cardinality):
+                Value = None
+                while True:
+                    value = self.get_instance()
+                    if value not in self.cardinality:
+                        break
+                self.cardinality.append(value)
+
+    def __str__(self):
+        s = 'ElementObject(name='+self.name
+        s += ', length_distribution='+str(self.length_distribution)
+        s += ', selection_distribution='+str(self.selection_distribution)
+        s += ', elements=['
+        for e in self.elements:
+            s += ',' + str(e)
+        s += '])'
+        return s
+
+    def get_instance(self):
+        s = '"'+self.name+'": ['
+        length = int(self.length_distribution.get_sample())
+        for i in range(length):
+            index = int(self.selection_distribution.get_sample())
+            if index < 0:
+                index = 0
+            if index >= length:
+                index = length-1
+            s += self.elements[index].get_json_field_string() + ','
+        s = s[:-1] +  ']'
         return s
 
 
@@ -715,6 +789,8 @@ def parse_element(desc):
         el = ElementVariable(desc)
     elif desc['type'].lower() == 'object':
         el = ElementObject(desc)
+    elif desc['type'].lower() == 'list':
+        el = ElementList(desc)
     else:
         print('Error: Unknown dimension type "'+desc['type']+'"')
         exit()
