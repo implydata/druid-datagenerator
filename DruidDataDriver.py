@@ -634,6 +634,70 @@ class ElementIPAddress(ElementBase):
             s = '"'+self.name+'":"'+str(value)+'"'
         return s
 
+class ElementObject():
+    def __init__(self, desc):
+        self.name = desc['name']
+        self.dimensions = get_variables(desc['dimensions'])
+        if 'percent_nulls' in desc.keys():
+            self.percent_nulls = desc['percent_nulls'] / 100.0
+        else:
+            self.percent_nulls = 0.0
+        if 'percent_missing' in desc.keys():
+            self.percent_missing = desc['percent_missing'] / 100.0
+        else:
+            self.percent_missing = 0.0
+        cardinality = desc['cardinality']
+        if cardinality == 0:
+            self.cardinality = None
+            self.cardinality_distribution = None
+        else:
+            self.cardinality = []
+            if 'cardinality_distribution' not in desc.keys():
+                print('Element '+self.name+' specifies a cardinality without a cardinality distribution')
+                exit()
+            self.cardinality_distribution = parse_distribution(desc['cardinality_distribution'])
+            for i in range(cardinality):
+                Value = None
+                while True:
+                    value = self.get_instance()
+                    if value not in self.cardinality:
+                        break
+                self.cardinality.append(value)
+
+    def __str__(self):
+        s = 'ElementObject(name='+self.name
+        for e in self.dimensions:
+            s += ',' + str(e)
+        s += ')'
+        return s
+
+    def get_instance(self):
+        s = '"'+self.name+'": {'
+        for e in self.dimensions:
+            s += e.get_json_field_string() + ','
+        s = s[:-1] +  '}'
+        return s
+
+
+    def get_json_field_string(self):
+        if random.random() < self.percent_nulls:
+            s = '"'+self.name+'": null'
+        else:
+            if self.cardinality is None:
+                s = self.get_instance()
+            else:
+                index = int(self.cardinality_distribution.get_sample())
+                if index < 0:
+                    index = 0
+                if index >= len(self.cardinality):
+                    index = len(self.cardinality)-1
+                s = self.cardinality[index]
+        return s
+
+    def is_missing(self):
+        return random.random() < self.percent_missing
+
+
 def parse_element(desc):
     if desc['type'].lower() == 'enum':
         el = ElementEnum(desc)
@@ -649,6 +713,8 @@ def parse_element(desc):
         el = ElementIPAddress(desc)
     elif desc['type'].lower() == 'variable':
         el = ElementVariable(desc)
+    elif desc['type'].lower() == 'object':
+        el = ElementObject(desc)
     else:
         print('Error: Unknown dimension type "'+desc['type']+'"')
         exit()
