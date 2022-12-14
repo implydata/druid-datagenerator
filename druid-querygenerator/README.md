@@ -15,6 +15,7 @@ apt-get install -y python3-pip
 
 pip install python-dateutil
 pip install numpy
+pip install requests
 ```
 
 Run the program as follows:

@@ -402,16 +402,16 @@ def expand_query(raw_query, variables):
     return result
 
 
-def post_query(query):
+def post_query(target, query):
     global target_stdout
     global target_url
 
     if target_stdout:
         print('{"query": "'+query+'"}')
     if target_url:
-        req = requests.post(target, json={"query": expanded_query})
+        req = requests.post(target, json={"query": query})
         if req.status_code != 200:
-           sys.stderr.write('ERROR ('+query+'): '+req.status_code+'\n')
+           sys.stderr.write('ERROR ('+query+'): '+str(req.status_code)+'\n')
 
 def query_thread(query):
     global total_queries
@@ -428,7 +428,7 @@ def query_thread(query):
             thread_end_event.set()
             break
         expanded_query = expand_query(raw_query, variables)
-        post_query(expanded_query)
+        post_query(target, expanded_query)
         query_count += 1
 
 for query in config['queries']:
