@@ -116,11 +116,11 @@ The query pattern is SQL and may include variables, which the generator will der
 
 For example:
 ```
-"query": "SELECT * FROM clickstream-data WHERE TIME_IN_INTERVAL(\\\"__time\\\", '$begin_time/$end_time')"
+"query": "SELECT * FROM clickstream-data WHERE TIME_IN_INTERVAL(\"__time\", '$begin_time/$end_time')"
 ```
 
 Where <i>$begin_time</i> and <i>$end_time</i> are variable references that the generator replaces with stochastic values when the generator creates the actual query string.
-Note that in this example, we need to escape the double quotes with a backslash in the final query, and we must also escape the backslash within JSON, which results in three backslashes before the double quotes.
+Note that in this example, we need to escape the double quotes with a backslash in the final query.
 
 
 The previous query pattern might cause the generator to emit the following query:
