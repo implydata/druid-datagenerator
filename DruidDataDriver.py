@@ -279,7 +279,6 @@ class DistUniform:
     def __str__(self):
         return 'DistUniform(min_value='+str(self.min_value)+', max_value='+str(self.max_value)+')'
     def get_sample(self):
-        n = np.random.uniform(self.min_value, self.max_value)
         return np.random.uniform(self.min_value, self.max_value+1)
 
 class DistExponential:
