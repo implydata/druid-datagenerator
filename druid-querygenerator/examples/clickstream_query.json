@@ -3,7 +3,7 @@
     {
       "target": "http://localhost:8888/druid/v2/sql",
       "delay": {"type": "exponential", "mean": 1},
-      "query": "SELECT * FROM clickstream-data WHERE TIME_IN_INTERVAL(\\\"__time\\\", '$begin_time/$end_time')",
+      "query": "SELECT * FROM \"clickstream-data\" WHERE TIME_IN_INTERVAL(\"__time\", '$begin_time/$end_time')",
       "variables": [
         {
           "name": "begin_time",
@@ -28,7 +28,7 @@
     {
       "target": "http://localhost:8888/druid/v2/sql",
       "delay": {"type": "exponential", "mean": 1},
-      "query": "SELECT * FROM clickstream-data WHERE TIME_IN_INTERVAL(\\\"__time\\\", '$begin_time/$end_time') AND client_lang = \\\"$lang\\\"",
+      "query": "SELECT * FROM \"clickstream-data\" WHERE TIME_IN_INTERVAL(\"__time\", '$begin_time/$end_time') AND client_lang = '$lang'",
       "variables": [
         {
           "name": "begin_time",
@@ -68,7 +68,7 @@
     {
       "target": "http://localhost:8888/druid/v2/sql",
       "delay": {"type": "exponential", "mean": 1},
-      "query": "SELECT * FROM clickstream-data WHERE TIME_IN_INTERVAL(\\\"__time\\\", '$begin_time/$end_time') AND client_country = \\\"$country\\\"",
+      "query": "SELECT * FROM \"clickstream-data\" WHERE TIME_IN_INTERVAL(\"__time\", '$begin_time/$end_time') AND client_country = '$country'",
       "variables": [
         {
           "name": "begin_time",
@@ -113,7 +113,7 @@
     {
       "target": "http://localhost:8888/druid/v2/sql",
       "delay": {"type": "exponential", "mean": 1},
-      "query": "SELECT * FROM clickstream-data WHERE TIME_IN_INTERVAL(\\\"__time\\\", '$begin_time/$end_time') AND client_ip = \\\"$ip\\\"",
+      "query": "SELECT * FROM \"clickstream-data\" WHERE TIME_IN_INTERVAL(\"__time\", '$begin_time/$end_time') AND client_ip = '$ip'",
       "variables": [
         {
           "name": "begin_time",
@@ -145,7 +145,7 @@
     {
       "target": "http://localhost:8888/druid/v2/sql",
       "delay": {"type": "exponential", "mean": 1},
-      "query": "SELECT * FROM clickstream-data WHERE TIME_IN_INTERVAL(\\\"__time\\\", '$begin_time/$end_time') AND referrer = \\\"$referrer\\\"",
+      "query": "SELECT * FROM \"clickstream-data\" WHERE TIME_IN_INTERVAL(\"__time\", '$begin_time/$end_time') AND referrer = '$referrer'",
       "variables": [
         {
           "name": "begin_time",
