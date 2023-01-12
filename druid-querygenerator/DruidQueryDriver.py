@@ -31,55 +31,6 @@ import time
 #
 ############################################################################
 
-#
-# Parse the command line
-#
-
-parser = argparse.ArgumentParser(description='Generates SQL queries as a query workload for Apache Druid.')
-parser.add_argument('-f', dest='config_file', nargs='?', help='the workload config file name')
-parser.add_argument('-o', dest='target', nargs='?', help='Log queries to stdout (values include TARGET, STDOUT, BOTH)')
-parser.add_argument('-t', dest='time', nargs='?', help='the script runtime (may not be used with -n)')
-parser.add_argument('-n', dest='n_queries', nargs='?', help='the number of records to generate (may not be used with -t)')
-
-args = parser.parse_args()
-
-config_file_name = args.config_file
-runtime = args.time
-total_queries = None
-if args.n_queries is not None:
-    total_queries = int(args.n_queries)
-
-if args.target is not None:
-    if args.target.lower() == 'stdout':
-        target_stdout = True
-        target_url = False
-    elif args.target.lower() == 'target':
-        target_stdout = False
-        target_url = True
-    elif args.target.lower() == 'both':
-        target_stdout = True
-        target_url = True
-    else:
-        print('Unrecognized value ("'+args.target+'") with -o flag - should be TARGET, STDOUT or BOTH')
-        exit()
-else:
-    target_stdout = False
-    target_url = True
-
-if (runtime is not None) and (total_queries is not None):
-    print("Use either -t or -n, but not both")
-    parser.print_help()
-    exit()
-
-if config_file_name:
-    with open(config_file_name, 'r') as f:
-        config = json.load(f)
-else:
-    config = json.load(sys.stdin)
-
-thread_end_event = threading.Event()
-query_count = 0
-
 
 #
 # Handle distributions
@@ -368,6 +319,45 @@ class VarIPAddress(VarBase):
         return str((value & 0xFF000000) >> 24)+'.'+str((value & 0x00FF0000) >> 16)+'.'+str((value & 0x0000FF00) >> 8)+'.'+str(value & 0x000000FF)
 
 
+class SimEnd:
+    lock = threading.Lock()
+    thread_end_event = threading.Event()
+    query_count = 0
+    def __init__(self, total_queries, runtime):
+        self.total_queries = total_queries
+        if runtime is None:
+            self.t = None
+        else:
+            if runtime[-1].lower() == 's':
+                self.t = int(runtime[:-1])
+            elif runtime[-1].lower() == 'm':
+                self.t = int(runtime[:-1]) * 60
+            elif runtime[-1].lower() == 'h':
+                self.t = int(runtime[:-1]) * 60 * 60
+            else:
+                print('Error: Unknown runtime value"'+runtime+'"')
+                exit()
+
+    def inc_query_count(self):
+        self.lock.acquire()
+        self.query_count += 1
+        self.lock.release()
+        if (self.total_queries is not None) and (self.query_count >= self.total_queries):
+            self.thread_end_event.set()
+
+    def is_done(self):
+        return ((self.total_queries is not None) and (self.query_count >= self.total_queries)) or ((self.t is not None) and self.thread_end_event.is_set())
+
+    def wait_for_end(self):
+        if self.t is not None:
+            time.sleep(self.t)
+            self.thread_end_event.set()
+        elif self.total_queries is not None:
+            self.thread_end_event.wait()
+        else:
+            while True:
+                time.sleep(60)
+
 def get_variable(desc):
     if desc['type'].lower() == 'enum':
         v = VarEnum(desc)
@@ -402,9 +392,7 @@ def expand_query(raw_query, variables):
     return result
 
 
-def post_query(target, query):
-    global target_stdout
-    global target_url
+def post_query(target, query, target_stdout, target_url):
 
     if target_stdout:
         print('{"query": "'+query+'"}')
@@ -413,9 +401,7 @@ def post_query(target, query):
         if req.status_code != 200:
            sys.stderr.write('ERROR ('+query+'): '+str(req.status_code)+'\n')
 
-def query_thread(query):
-    global total_queries
-    global query_count
+def query_thread(query, sim_end, target_stdout, target_url):
 
     target = query['target']
     delay = parse_distribution(query['delay'])
@@ -424,30 +410,71 @@ def query_thread(query):
     while True:
         delta = float(delay.get_sample())
         time.sleep(delta)
-        if total_queries is not None and query_count >= total_queries:
-            thread_end_event.set()
+        if sim_end.is_done():
             break
         expanded_query = expand_query(raw_query, variables)
-        post_query(target, expanded_query)
-        query_count += 1
+        post_query(target, expanded_query, target_stdout, target_url)
+        sim_end.inc_query_count()
 
-for query in config['queries']:
-    t = threading.Thread(target=query_thread, args=(query, ), name=query['query'], daemon=True)
-    t.start()
-
-if runtime is not None:
-    if runtime[-1].lower() == 's':
-        t = int(runtime[:-1])
-    elif runtime[-1].lower() == 'm':
-        t = int(runtime[:-1]) * 60
-    elif runtime[-1].lower() == 'h':
-        t = int(runtime[:-1]) * 60 * 60
+def simulate_queries(config_file_name, runtime, total_queries, target_stdout, target_url):
+    if config_file_name:
+        with open(config_file_name, 'r') as f:
+            config = json.load(f)
     else:
-        print('Error: Unknown runtime value"'+runtime+'"')
+        config = json.load(sys.stdin)
+
+    sim_end = SimEnd(total_queries, runtime)
+
+    for query in config['queries']:
+        t = threading.Thread(target=query_thread, args=(query, sim_end, target_stdout, target_url, ), name=query['query'], daemon=True)
+        t.start()
+
+    sim_end.wait_for_end()
+
+
+def main():
+
+    #
+    # Parse the command line
+    #
+
+    parser = argparse.ArgumentParser(description='Generates SQL queries as a query workload for Apache Druid.')
+    parser.add_argument('-f', dest='config_file', nargs='?', help='the workload config file name')
+    parser.add_argument('-o', dest='target', nargs='?', help='Log queries to stdout (values include TARGET, STDOUT, BOTH)')
+    parser.add_argument('-t', dest='time', nargs='?', help='the script runtime (may not be used with -n)')
+    parser.add_argument('-n', dest='n_queries', nargs='?', help='the number of records to generate (may not be used with -t)')
+
+    args = parser.parse_args()
+
+    config_file_name = args.config_file
+    runtime = args.time
+    total_queries = None
+    if args.n_queries is not None:
+        total_queries = int(args.n_queries)
+
+    if args.target is not None:
+        if args.target.lower() == 'stdout':
+            target_stdout = True
+            target_url = False
+        elif args.target.lower() == 'target':
+            target_stdout = False
+            target_url = True
+        elif args.target.lower() == 'both':
+            target_stdout = True
+            target_url = True
+        else:
+            print('Unrecognized value ("'+args.target+'") with -o flag - should be TARGET, STDOUT or BOTH')
+            exit()
+    else:
+        target_stdout = False
+        target_url = True
+
+    if (runtime is not None) and (total_queries is not None):
+        print("Use either -t or -n, but not both")
+        parser.print_help()
         exit()
-    time.sleep(t)
-elif total_queries is not None:
-    thread_end_event.wait()
-else:
-    while True:
-        time.sleep(60)
+
+    simulate_queries(config_file_name, runtime, total_queries, target_stdout, target_url)
+
+if __name__ == "__main__":
+    main()

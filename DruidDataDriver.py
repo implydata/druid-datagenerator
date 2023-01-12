@@ -804,6 +804,7 @@ class SimEnd:
         if self.t is not None:
             self.global_clock.activate_thread()
             self.global_clock.sleep(self.t)
+            self.thread_end_event.set()
             self.global_clock.deactivate_thread()
         elif self.total_recs is not None:
             self.thread_end_event.wait()
