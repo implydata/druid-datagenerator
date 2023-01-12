@@ -32,38 +32,6 @@ import time
 ############################################################################
 
 
-#
-# Parse the command line
-#
-
-parser = argparse.ArgumentParser(description='Generates JSON records as a workload for Apache Druid.')
-#parser.add_argument('config_file', metavar='<config file name>', help='the workload config file name')
-parser.add_argument('-f', dest='config_file', nargs='?', help='the workload config file name')
-parser.add_argument('-t', dest='time', nargs='?', help='the script runtime (may not be used with -n)')
-parser.add_argument('-n', dest='n_recs', nargs='?', help='the number of records to generate (may not be used with -t)')
-parser.add_argument('-s', dest='time_type', nargs='?', const='SIM', default='REAL', help='simulate time (default is real, not simulated)')
-
-args = parser.parse_args()
-
-config_file_name = args.config_file
-runtime = args.time
-total_recs = None
-if args.n_recs is not None:
-    total_recs = int(args.n_recs)
-time_type = args.time_type
-
-if (runtime is not None) and (total_recs is not None):
-    print("Use either -t or -n, but not both")
-    parser.print_help()
-    exit()
-
-
-if config_file_name:
-    with open(config_file_name, 'r') as f:
-        config = json.load(f)
-else:
-    config = json.load(sys.stdin)
-
 class FutureEvent:
     def __init__(self, t):
         self.t = t
@@ -155,7 +123,7 @@ class Clock:
         event.resume()
 
     def now(self):
-        if time_type == 'SIM':
+        if self.time_type == 'SIM':
             t = self.sim_time
         else:
             t = datetime.now()
@@ -185,7 +153,6 @@ class Clock:
         else: # Real time
             time.sleep(delta)
 
-global_clock = Clock(time_type)
 
 #
 # Set up the target
@@ -224,41 +191,6 @@ class PrintKafka:
     def print(self, record):
         self.producer.send(self.topic, json.loads(str(record)))
 
-target = config['target']
-
-if target['type'].lower() == 'stdout':
-    target_printer = PrintStdout()
-elif target['type'].lower() == 'file':
-    path = target['path']
-    if path is None:
-        print('Error: File target requires a path item')
-        exit()
-    target_printer = PrintFile(path)
-elif target['type'].lower() == 'kafka':
-    if 'endpoint' in target.keys():
-        endpoint = target['endpoint']
-    else:
-        print('Error: Kafka target requires an endpoint item')
-        exit()
-    if 'topic' in target.keys():
-        topic = target['topic']
-    else:
-        print('Error: Kafka target requires a topic item')
-        exit()
-    if 'security_protocol' in target.keys():
-        security_protocol = target['security_protocol']
-    else:
-        security_protocol = 'PLAINTEXT'
-    if 'compression_type' in target.keys():
-        compression_type = target['compression_type']
-    else:
-        compression_type = None
-    target_printer = PrintKafka(endpoint, topic, security_protocol, compression_type)
-else:
-    print('Error: Unknown target type "'+target['type']+'"')
-    exit()
-
-#sys.stderr.write('target='+str(target_printer)+'\n')
 
 #
 # Handle distributions
@@ -342,14 +274,6 @@ def parse_timestamp_distribution(desc):
         exit()
     return dist_gen
 
-#
-# Set up the interarrival rate
-#
-
-rate = config['interarrival']
-rate_delay = parse_distribution(rate)
-
-#sys.stderr.write('rate_delay='+str(rate_delay)+'\n')
 
 #
 # Set up the dimensions for the emitters (see below)
@@ -362,10 +286,12 @@ rate_delay = parse_distribution(rate)
 #
 
 class ElementNow: # The __time dimension
+    def __init__(self, global_clock):
+        self.global_clock = global_clock
     def __str__(self):
         return 'ElementNow()'
     def get_json_field_string(self):
-        now = global_clock.now().isoformat()[:-3]
+        now = self.global_clock.now().isoformat()[:-3]
         return '"__time":"'+now+'"'
 
 class ElementEnum: # enumeration dimensions
@@ -803,23 +729,11 @@ def get_variables(desc):
         elements.append(el)
     return elements
 
-def get_dimensions(desc):
-    global time_gen
+def get_dimensions(desc, global_clock):
     elements = get_variables(desc)
-    elements.insert(0, ElementNow())
+    elements.insert(0, ElementNow(global_clock))
     return elements
 
-#
-# Set up emitters list
-#
-
-emitters = {}
-for emitter in config['emitters']:
-    name = emitter['name']
-    dimensions = get_dimensions(emitter['dimensions'])
-    emitters[name] = dimensions
-
-#sys.stderr.write('emitters='+str(['(name='+str(key)+', dimensions='+str([str(e) for e in emitters[key]])+')' for key in emitters])+'\n')
 
 #
 # Set up the state machine
@@ -842,7 +756,7 @@ def parse_transitions(desc):
     return transitions
 
 class State:
-    def __init__(self, name, dimensions, delay, transistions, variables):
+    def __init__(self, name, dimensions, delay, transitions, variables):
         self.name = name
         self.dimensions = dimensions
         self.delay = delay
@@ -856,32 +770,52 @@ class State:
     def get_next_state_name(self):
         return random.choices(self.transistion_states, weights=self.transistion_probabilities, k=1)[0]
 
+class SimEnd:
+    lock = threading.Lock()
+    thread_end_event = threading.Event()
+    def __init__(self, total_recs, runtime, global_clock):
+        self.total_recs = total_recs
+        self.record_count = 0
+        self.global_clock = global_clock
+        if runtime is None:
+            self.t = None
+        else:
+            if runtime[-1].lower() == 's':
+                self.t = int(runtime[:-1])
+            elif runtime[-1].lower() == 'm':
+                self.t = int(runtime[:-1]) * 60
+            elif runtime[-1].lower() == 'h':
+                self.t = int(runtime[:-1]) * 60 * 60
+            else:
+                print('Error: Unknown runtime value"'+runtime+'"')
+                exit()
 
-state_desc = config['states']
-initial_state = None
-states = {}
-for state in state_desc:
-    name = state['name']
-    emitter_name = state['emitter']
-    if 'variables' not in state.keys():
-        variables = []
-    else:
-        variables = get_variables(state['variables'])
-    dimensions = emitters[emitter_name]
-    delay = parse_distribution(state['delay'])
-    transitions = parse_transitions(state['transitions'])
-    this_state = State(name, dimensions, delay, transitions, variables)
-    states[name] = this_state
-    if initial_state == None:
-        initial_state = this_state
+    def inc_rec_count(self):
+        self.lock.acquire()
+        self.record_count += 1
+        self.lock.release()
+        if (self.total_recs is not None) and (self.record_count >= self.total_recs):
+            self.thread_end_event.set()
 
-#sys.stderr.write('states='+str(['('+str(key)+':'+str(states[key])+')' for key in states])+'\n')
+    def is_done(self):
+        return ((self.total_recs is not None) and (self.record_count >= self.total_recs)) or ((self.t is not None) and self.thread_end_event.is_set())
+
+    def wait_for_end(self):
+        if self.t is not None:
+            self.global_clock.activate_thread()
+            self.global_clock.sleep(self.t)
+            self.global_clock.deactivate_thread()
+        elif self.total_recs is not None:
+            self.thread_end_event.wait()
+            self.global_clock.release_all()
+        else:
+            while True:
+                time.sleep(60)
+
 
 #
 # Run the driver
 #
-
-record_count = 0
 
 def create_record(dimensions, variables):
     json_string = '{'
@@ -894,17 +828,12 @@ def create_record(dimensions, variables):
     json_string = json_string[:-1] + '}'
     return json_string
 
-thread_end_event = threading.Event()
-
 def set_variable_values(variables, dimensions):
     for d in dimensions:
         variables[d.name] = d.get_stochastic_value()
 
-def worker_thread(target_printer, states, initial_state):
+def worker_thread(target_printer, states, initial_state, sim_end, global_clock):
     # Process the state machine using worker threads
-    global record_count
-    global total_recs
-    global global_clock
     #print('Thread '+threading.current_thread().name+' starting...')
     global_clock.activate_thread()
     current_state = initial_state
@@ -913,14 +842,12 @@ def worker_thread(target_printer, states, initial_state):
         set_variable_values(variables, current_state.variables)
         record = create_record(current_state.dimensions, variables)
         target_printer.print(record)
-        record_count += 1
-        if total_recs is not None and record_count >= total_recs:
-            thread_end_event.set()
+        sim_end.inc_rec_count()
+        if sim_end.is_done():
             break
         delta = float(current_state.delay.get_sample())
         global_clock.sleep(delta)
-        if total_recs is not None and record_count >= total_recs:
-            thread_end_event.set()
+        if sim_end.is_done():
             break
         next_state_name = current_state.get_next_state_name()
         if next_state_name.lower() == 'stop':
@@ -930,42 +857,165 @@ def worker_thread(target_printer, states, initial_state):
     #print('Thread '+threading.current_thread().name+' done!')
     global_clock.end_thread()
 
-def spawning_thread(target_printer, rate_delay, states, initial_state):
-    global thread_end_event
-    global global_clock
+def spawning_thread(target_printer, rate_delay, states, initial_state, sim_end, global_clock):
     #print('Thread '+threading.current_thread().name+' starting...')
     global_clock.activate_thread()
     # Spawn the workers in a separate thread so we can stop the whole thing in the middle of spawning if necessary
     count = 0
-    while not thread_end_event.is_set():
+    while not sim_end.is_done():
         thread_name = 'W'+str(count)
 
         count += 1
-        t = threading.Thread(target=worker_thread, args=(target_printer, states, initial_state, ), name=thread_name, daemon=True)
+        t = threading.Thread(target=worker_thread, args=(target_printer, states, initial_state, sim_end, global_clock, ), name=thread_name, daemon=True)
         t.start()
         global_clock.sleep(float(rate_delay.get_sample()))
     global_clock.end_thread()
     #print('Thread '+threading.current_thread().name+' done!')
 
-thrd = threading.Thread(target=spawning_thread, args=(target_printer, rate_delay, states, initial_state, ), name='Spawning', daemon=True)
-thrd.start()
 
-if runtime is not None:
-    if runtime[-1].lower() == 's':
-        t = int(runtime[:-1])
-    elif runtime[-1].lower() == 'm':
-        t = int(runtime[:-1]) * 60
-    elif runtime[-1].lower() == 'h':
-        t = int(runtime[:-1]) * 60 * 60
+def simulate(config_file_name, runtime, total_recs, time_type):
+
+    if config_file_name:
+        with open(config_file_name, 'r') as f:
+            config = json.load(f)
     else:
-        print('Error: Unknown runtime value"'+runtime+'"')
+        config = json.load(sys.stdin)
+
+    #
+    # Set up the gloabl clock
+    #
+
+    global_clock = Clock(time_type)
+    sim_end = SimEnd(total_recs, runtime, global_clock)
+
+
+    #
+    # Set up the output target
+    #
+
+    target = config['target']
+
+    if target['type'].lower() == 'stdout':
+        target_printer = PrintStdout()
+    elif target['type'].lower() == 'file':
+        path = target['path']
+        if path is None:
+            print('Error: File target requires a path item')
+            exit()
+        target_printer = PrintFile(path)
+    elif target['type'].lower() == 'kafka':
+        if 'endpoint' in target.keys():
+            endpoint = target['endpoint']
+        else:
+            print('Error: Kafka target requires an endpoint item')
+            exit()
+        if 'topic' in target.keys():
+            topic = target['topic']
+        else:
+            print('Error: Kafka target requires a topic item')
+            exit()
+        if 'security_protocol' in target.keys():
+            security_protocol = target['security_protocol']
+        else:
+            security_protocol = 'PLAINTEXT'
+        if 'compression_type' in target.keys():
+            compression_type = target['compression_type']
+        else:
+            compression_type = None
+        target_printer = PrintKafka(endpoint, topic, security_protocol, compression_type)
+    else:
+        print('Error: Unknown target type "'+target['type']+'"')
         exit()
-    global_clock.activate_thread()
-    global_clock.sleep(t)
-    global_clock.deactivate_thread()
-elif total_recs is not None:
-    thread_end_event.wait()
-    global_clock.release_all()
-else:
-    while True:
-        time.sleep(60)
+
+    #sys.stderr.write('target='+str(target_printer)+'\n')
+
+
+    #
+    # Set up the interarrival rate
+    #
+
+    rate = config['interarrival']
+    rate_delay = parse_distribution(rate)
+
+    #sys.stderr.write('rate_delay='+str(rate_delay)+'\n')
+
+
+    #
+    # Set up emitters list
+    #
+
+    emitters = {}
+    for emitter in config['emitters']:
+        name = emitter['name']
+        dimensions = get_dimensions(emitter['dimensions'], global_clock)
+        emitters[name] = dimensions
+
+    #sys.stderr.write('emitters='+str(['(name='+str(key)+', dimensions='+str([str(e) for e in emitters[key]])+')' for key in emitters])+'\n')
+
+
+    #
+    # Set up the state machine
+    #
+
+    state_desc = config['states']
+    initial_state = None
+    states = {}
+    for state in state_desc:
+        name = state['name']
+        emitter_name = state['emitter']
+        if 'variables' not in state.keys():
+            variables = []
+        else:
+            variables = get_variables(state['variables'])
+        dimensions = emitters[emitter_name]
+        delay = parse_distribution(state['delay'])
+        transitions = parse_transitions(state['transitions'])
+        this_state = State(name, dimensions, delay, transitions, variables)
+        states[name] = this_state
+        if initial_state == None:
+            initial_state = this_state
+
+    #sys.stderr.write('states='+str(['('+str(key)+':'+str(states[key])+')' for key in states])+'\n')
+
+    #
+    # Finally, start the simulation
+    #
+
+    thrd = threading.Thread(target=spawning_thread, args=(target_printer, rate_delay, states, initial_state, sim_end, global_clock, ), name='Spawning', daemon=True)
+    thrd.start()
+    sim_end.wait_for_end()
+
+def main():
+
+    #
+    # Parse the command line
+    #
+
+    parser = argparse.ArgumentParser(description='Generates JSON records as a workload for Apache Druid.')
+    #parser.add_argument('config_file', metavar='<config file name>', help='the workload config file name')
+    parser.add_argument('-f', dest='config_file', nargs='?', help='the workload config file name')
+    parser.add_argument('-t', dest='time', nargs='?', help='the script runtime (may not be used with -n)')
+    parser.add_argument('-n', dest='n_recs', nargs='?', help='the number of records to generate (may not be used with -t)')
+    parser.add_argument('-s', dest='time_type', nargs='?', const='SIM', default='REAL', help='simulate time (default is real, not simulated)')
+
+    args = parser.parse_args()
+
+    config_file_name = args.config_file
+    runtime = args.time
+    total_recs = None
+    if args.n_recs is not None:
+        total_recs = int(args.n_recs)
+    time_type = args.time_type
+
+    if (runtime is not None) and (total_recs is not None):
+        print("Use either -t or -n, but not both")
+        parser.print_help()
+        exit()
+
+
+    simulate(config_file_name, runtime, total_recs, time_type)
+
+
+
+if __name__ == "__main__":
+    main()
