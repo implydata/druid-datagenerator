@@ -3,6 +3,7 @@
 #
 
 import argparse
+from confluent_kafka import Producer
 import dateutil.parser
 from datetime import datetime, timedelta
 import json
@@ -190,6 +191,31 @@ class PrintKafka:
         return 'PrintKafka(endpoint='+self.endpoint+', topic='+self.topic+')'
     def print(self, record):
         self.producer.send(self.topic, json.loads(str(record)))
+
+class PrintConfluent:
+    producer = None
+    topic = None
+    username = None
+    password = None
+    def __init__(self, servers, topic, username, password):
+        #print('PrintKafka('+str(endpoint)+', '+str(topic)+', '+str(security_protocol)+', '+str(compression_type)+')')
+        self.servers = servers
+        self.producer = Producer({
+            'bootstrap.servers': servers,
+            'sasl.mechanisms': 'PLAIN',
+            'security.protocol': 'SASL_SSL',
+            'sasl.username': username,
+            'sasl.password': password
+        })
+        self.topic = topic
+        self.username = username
+        self.password = password
+    def __str__(self):
+        return 'PrintConfluent(servers='+self.servers+', topic='+self.topic+', username='+self.username+', password='+self.password+')'
+    def print(self, record):
+        print('producing '+str(record))
+        self.producer.produce(topic=self.topic, value=str(record))
+        self.producer.flush()
 
 
 #
@@ -924,6 +950,28 @@ def simulate(config_file_name, runtime, total_recs, time_type):
         else:
             compression_type = None
         target_printer = PrintKafka(endpoint, topic, security_protocol, compression_type)
+    elif target['type'].lower() == 'confluent':
+        if 'servers' in target.keys():
+            servers = target['servers']
+        else:
+            print('Error: Conlfuent target requires a servers item')
+            exit()
+        if 'topic' in target.keys():
+            topic = target['topic']
+        else:
+            print('Error: Confluent target requires a topic item')
+            exit()
+        if 'username' in target.keys():
+            username = target['username']
+        else:
+            print('Error: Confluent target requires a username')
+            exit()
+        if 'password' in target.keys():
+            password = target['password']
+        else:
+            print('Error: Confluent target requires a password')
+            exit()
+        target_printer = PrintConfluent(servers, topic, username, password)
     else:
         print('Error: Unknown target type "'+target['type']+'"')
         exit()
