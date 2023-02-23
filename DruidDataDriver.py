@@ -10,6 +10,7 @@ import json
 from kafka import KafkaProducer
 import numpy as np
 import random
+import re
 from sortedcontainers import SortedList
 import string
 import sys
@@ -699,7 +700,7 @@ class ElementList():
                 index = 0
             if index >= length:
                 index = length-1
-            s += self.elements[index].get_json_field_string() + ','
+            s += re.sub('^.*?:', '', self.elements[index].get_json_field_string(), count=1) + ','
         s = s[:-1] +  ']'
         return s
 
