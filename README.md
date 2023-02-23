@@ -425,7 +425,7 @@ Where:
 - <i>name</i> is the name of the dimension
 - <i>distribution</i> describes the distribution of IP address values the driver generates
 - <i>cardinality</i> indicates the number of unique values for this dimension (zero for unconstrained cardinality)
-- <i>cardinality_distribution</i> skews the cardinality selection of the generated timestamps (optional - omit for unconstrained cardinality)
+- <i>cardinality_distribution</i> skews the cardinality selection of the generated IP addresses (optional - omit for unconstrained cardinality)
 - <i>percent_missing</i> a value in the range of 0.0 and 100.0 (inclusive) indicating the stochastic frequency for omitting this dimension from records (optional - the default value is 0.0 if omitted)
 - <i>percent_nulls</i> a value in the range of 0.0 and 100.0 (inclusive) indicating the stochastic frequency for generating null values (optional - the default value is 0.0 if omitted)
 
@@ -467,7 +467,7 @@ Object dimensions create nested data. Object dimension specification entries hav
 Where:
 - <i>name</i> is the name of the object
 - <i>cardinality</i> indicates the number of unique values for this dimension (zero for unconstrained cardinality)
-- <i>cardinality_distribution</i> skews the cardinality selection of the generated timestamps (optional - omit for unconstrained cardinality)
+- <i>cardinality_distribution</i> skews the cardinality selection of the generated objects (optional - omit for unconstrained cardinality)
 - <i>percent_missing</i> a value in the range of 0.0 and 100.0 (inclusive) indicating the stochastic frequency for omitting this dimension from records (optional - the default value is 0.0 if omitted)
 - <i>percent_nulls</i> a value in the range of 0.0 and 100.0 (inclusive) indicating the stochastic frequency for generating null values (optional - the default value is 0.0 if omitted)
 - <i>dimensions</i> is a list of nested dimensions
@@ -496,7 +496,7 @@ Where:
 - <i>selection_distribution</i> informs the generator which elements to select for the list from the elements list
 - <i>elements</i> is a list of possible dimensions the generator may use in the generated list
 - <i>cardinality</i> indicates the number of unique values for this dimension (zero for unconstrained cardinality)
-- <i>cardinality_distribution</i> skews the cardinality selection of the generated timestamps (optional - omit for unconstrained cardinality)
+- <i>cardinality_distribution</i> skews the cardinality selection of the generated lists (optional - omit for unconstrained cardinality)
 - <i>percent_missing</i> a value in the range of 0.0 and 100.0 (inclusive) indicating the stochastic frequency for omitting this dimension from records (optional - the default value is 0.0 if omitted)
 - <i>percent_nulls</i> a value in the range of 0.0 and 100.0 (inclusive) indicating the stochastic frequency for generating null values (optional - the default value is 0.0 if omitted)
 
