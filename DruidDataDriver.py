@@ -3,11 +3,9 @@
 #
 
 import argparse
-from confluent_kafka import Producer
 import dateutil.parser
 from datetime import datetime, timedelta
 import json
-from kafka import KafkaProducer
 import numpy as np
 import random
 import re
@@ -932,6 +930,8 @@ def simulate(config_file_name, runtime, total_recs, time_type):
             exit()
         target_printer = PrintFile(path)
     elif target['type'].lower() == 'kafka':
+        from kafka import KafkaProducer
+
         if 'endpoint' in target.keys():
             endpoint = target['endpoint']
         else:
@@ -952,6 +952,8 @@ def simulate(config_file_name, runtime, total_recs, time_type):
             compression_type = None
         target_printer = PrintKafka(endpoint, topic, security_protocol, compression_type)
     elif target['type'].lower() == 'confluent':
+        from confluent_kafka import Producer
+
         if 'servers' in target.keys():
             servers = target['servers']
         else:
