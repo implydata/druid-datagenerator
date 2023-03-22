@@ -179,6 +179,7 @@ class PrintFile:
         self.f.flush()
 
 class PrintKafka:
+    from kafka import KafkaProducer
     producer = None
     topic = None
     def __init__(self, endpoint, topic, security_protocol, compression_type):
@@ -192,6 +193,7 @@ class PrintKafka:
         self.producer.send(self.topic, json.loads(str(record)))
 
 class PrintConfluent:
+    from confluent_kafka import Producer
     producer = None
     topic = None
     username = None
@@ -930,7 +932,6 @@ def simulate(config_file_name, runtime, total_recs, time_type):
             exit()
         target_printer = PrintFile(path)
     elif target['type'].lower() == 'kafka':
-        from kafka import KafkaProducer
 
         if 'endpoint' in target.keys():
             endpoint = target['endpoint']
@@ -952,7 +953,6 @@ def simulate(config_file_name, runtime, total_recs, time_type):
             compression_type = None
         target_printer = PrintKafka(endpoint, topic, security_protocol, compression_type)
     elif target['type'].lower() == 'confluent':
-        from confluent_kafka import Producer
 
         if 'servers' in target.keys():
             servers = target['servers']
