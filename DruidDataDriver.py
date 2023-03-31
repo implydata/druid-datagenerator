@@ -3,9 +3,11 @@
 #
 
 import argparse
+from confluent_kafka import Producer
 import dateutil.parser
 from datetime import datetime, timedelta
 import json
+from kafka import KafkaProducer
 import numpy as np
 import random
 import re
@@ -56,13 +58,13 @@ class FutureEvent:
         self.event.set()
 
 class Clock:
-    sim_time = datetime.now()
     future_events = SortedList()
     active_threads = 0
     lock = threading.Lock()
     sleep_lock = threading.Lock()
 
-    def __init__(self, time_type):
+    def __init__(self, time_type, start_time = datetime.now()):
+        self.sim_time = start_time
         self.time_type = time_type
 
     def __str__(self):
@@ -182,7 +184,6 @@ class PrintKafka:
     producer = None
     topic = None
     def __init__(self, endpoint, topic, security_protocol, compression_type):
-        from kafka import KafkaProducer
         #print('PrintKafka('+str(endpoint)+', '+str(topic)+', '+str(security_protocol)+', '+str(compression_type)+')')
         self.endpoint = endpoint
         self.producer = KafkaProducer(bootstrap_servers=endpoint, security_protocol=security_protocol, compression_type=compression_type, value_serializer=lambda v: json.dumps(v).encode('utf-8'))
@@ -198,7 +199,6 @@ class PrintConfluent:
     username = None
     password = None
     def __init__(self, servers, topic, username, password):
-        from confluent_kafka import Producer
         #print('PrintKafka('+str(endpoint)+', '+str(topic)+', '+str(security_protocol)+', '+str(compression_type)+')')
         self.servers = servers
         self.producer = Producer({
@@ -901,7 +901,7 @@ def spawning_thread(target_printer, rate_delay, states, initial_state, sim_end, 
     #print('Thread '+threading.current_thread().name+' done!')
 
 
-def simulate(config_file_name, runtime, total_recs, time_type):
+def simulate(config_file_name, runtime, total_recs, time_type, start_time):
 
     if config_file_name:
         with open(config_file_name, 'r') as f:
@@ -913,7 +913,7 @@ def simulate(config_file_name, runtime, total_recs, time_type):
     # Set up the gloabl clock
     #
 
-    global_clock = Clock(time_type)
+    global_clock = Clock(time_type, start_time)
     sim_end = SimEnd(total_recs, runtime, global_clock)
 
 
@@ -932,7 +932,6 @@ def simulate(config_file_name, runtime, total_recs, time_type):
             exit()
         target_printer = PrintFile(path)
     elif target['type'].lower() == 'kafka':
-
         if 'endpoint' in target.keys():
             endpoint = target['endpoint']
         else:
@@ -953,7 +952,6 @@ def simulate(config_file_name, runtime, total_recs, time_type):
             compression_type = None
         target_printer = PrintKafka(endpoint, topic, security_protocol, compression_type)
     elif target['type'].lower() == 'confluent':
-
         if 'servers' in target.keys():
             servers = target['servers']
         else:
@@ -1058,6 +1056,14 @@ def main():
     if args.n_recs is not None:
         total_recs = int(args.n_recs)
     time_type = args.time_type
+    if time_type == 'SIM':
+        start_time = datetime.now()
+    elif time_type == 'REAL':
+        start_time = datetime.now()
+    else:
+        start_time = dateutil.parser.isoparse(time_type)
+        time_type = 'SIM'
+
 
     if (runtime is not None) and (total_recs is not None):
         print("Use either -t or -n, but not both")
@@ -1065,7 +1071,7 @@ def main():
         exit()
 
 
-    simulate(config_file_name, runtime, total_recs, time_type)
+    simulate(config_file_name, runtime, total_recs, time_type, start_time)
 
 
 
