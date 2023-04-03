@@ -306,7 +306,7 @@ Where:
 
 ###### { "type": "string" ...}
 
-String dimension speficiation entries have the following format:
+String dimension specification entries have the following format:
 
 ```
 {
@@ -327,6 +327,30 @@ Where:
 - <i>cardinality</i> indicates the number of unique values for this dimension (zero for unconstrained cardinality)
 - <i>cardinality_distribution</i> informs the cardinality selection of the generated values (omit if cardinality is zero)
 - <i>chars</i> (optional) is a list (e.g., "ABC123") of characters that may be used to generate strings - if not specified, all printable characters will be used
+- <i>percent_missing</i> a value in the range of 0.0 and 100.0 (inclusive) indicating the stochastic frequency for omitting this dimension from records (optional - the default value is 0.0 if omitted)
+- <i>percent_nulls</i> a value in the range of 0.0 and 100.0 (inclusive) indicating the stochastic frequency for generating null values (optional - the default value is 0.0 if omitted)
+
+###### { "type": "counter" ...}
+
+Counter dimensions are values that increment each time they occur in a record (counters are not incremented when they are missing or null).
+Counters may be useful for dimensions simulating serial numbers, etc.
+Counter dimension specification entries have the following format:
+
+```
+{
+  "type": "counter",
+  "name": "<dimension name>",
+  "start": "<counter starting value (optional)>",
+  "increment": "<counter increment value (optional)>",
+  "percent_missing": <percentage value>,
+  "percent_nulls": <percentage value>
+}
+```
+
+Where:
+- <i>name</i> is the name of the dimension
+- <i>start</i> is the initial value of the counter. (optional - the default is 0)
+- <i>increment</i> is the amount to increment the value (optional - the default is 1)
 - <i>percent_missing</i> a value in the range of 0.0 and 100.0 (inclusive) indicating the stochastic frequency for omitting this dimension from records (optional - the default value is 0.0 if omitted)
 - <i>percent_nulls</i> a value in the range of 0.0 and 100.0 (inclusive) indicating the stochastic frequency for generating null values (optional - the default value is 0.0 if omitted)
 

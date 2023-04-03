@@ -321,6 +321,46 @@ class ElementNow: # The __time dimension
         now = self.global_clock.now().isoformat()[:-3]
         return '"__time":"'+now+'"'
 
+class ElementCounter: # The __time dimension
+    def __init__(self, desc):
+        self.name = desc['name']
+        if 'percent_nulls' in desc.keys():
+            self.percent_nulls = desc['percent_nulls'] / 100.0
+        else:
+            self.percent_nulls = 0.0
+        if 'percent_missing' in desc.keys():
+            self.percent_missing = desc['percent_missing'] / 100.0
+        else:
+            self.percent_missing = 0.0
+        if 'start' in desc.keys():
+            self.start = desc['start']
+        else:
+            self.start = 0
+        if 'increment' in desc.keys():
+            self.increment = desc['increment']
+        else:
+            self.increment = 1
+        self.value = self.start
+    def __str__(self):
+        s = 'ElementCounter(name='+self.name
+        if self.start != 0:
+            s += ', '+str(self.start)
+        if self.increment != 1:
+            s += ', '+str(self.increment)
+        s += ')'
+        return s
+    def get_json_field_string(self):
+        if random.random() < self.percent_nulls:
+            s = '"'+self.name+'": null'
+        else:
+            s = '"'+self.name+'":"'+str(self.value)+'"'
+            self.value += self.increment
+            return s
+
+    def is_missing(self):
+        return random.random() < self.percent_missing
+
+
 class ElementEnum: # enumeration dimensions
     def __init__(self, desc):
         self.name = desc['name']
@@ -725,7 +765,9 @@ class ElementList():
 
 
 def parse_element(desc):
-    if desc['type'].lower() == 'enum':
+    if desc['type'].lower() == 'counter':
+        el = ElementCounter(desc)
+    elif desc['type'].lower() == 'enum':
         el = ElementEnum(desc)
     elif desc['type'].lower() == 'string':
         el = ElementString(desc)
