@@ -349,12 +349,17 @@ class ElementCounter: # The __time dimension
             s += ', '+str(self.increment)
         s += ')'
         return s
+
+    def get_stochastic_value(self):
+        v = self.value
+        self.value += self.increment
+        return v
+
     def get_json_field_string(self):
         if random.random() < self.percent_nulls:
             s = '"'+self.name+'": null'
         else:
-            s = '"'+self.name+'":"'+str(self.value)+'"'
-            self.value += self.increment
+            s = '"'+self.name+'":"'+str(self.get_stochastic_value())+'"'
             return s
 
     def is_missing(self):
