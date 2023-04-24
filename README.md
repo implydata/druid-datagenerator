@@ -192,6 +192,7 @@ _kafka_ targets write records to a Kafka topic and have this format:
   "type": "kafka",
   "endpoint": "<ip address and optional port>",
   "topic": "<topic name>",
+  "topic_key": [<list of key fields>],
   "security_protocol": "<protocol designation>",
   "compression_type": "<compression type designation>"
 }
@@ -200,6 +201,7 @@ _kafka_ targets write records to a Kafka topic and have this format:
 Where:
 - <i>endpoint</i> is the IP address and optional port number (e.g., "127.0.0.1:9092") - if the port is omitted, 9092 is used
 - <i>topic</i> is the topic name as a string
+- <i>topic_key</i> (optional) is the list of generated fields used to build the key for each message
 - <i>security_protocol</i> (optional) a protocol specifier ("PLAINTEXT" (default if omitted), "SSL", "SASL_PLAINTEXT", "SASL_SSL")
 - <i>compression_type</i> (optional) a compression specifier ("gzip", "snappy", "lz4") - if omitted, no compression is used
 
@@ -210,6 +212,7 @@ _confluent_ targets write records to a Confluent topic and have this format:
   "type": "confluent",
   "servers": "<bootstrap servers>",
   "topic": "<topic name>",
+  "topic_key": [<list of key fields>],
   "username": "<username>",
   "password": "<password>"
 }
@@ -218,6 +221,7 @@ _confluent_ targets write records to a Confluent topic and have this format:
 Where:
 - <i>servers</i> is the confluent servers (e.g., "pkc-lzvrd.us-west4.gcp.confluent.cloud:9092")
 - <i>topic</i> is the topic name as a string
+- <i>topic_key</i> (optional) is the list of generated fields used to build the key for each message
 - <i>username</i> cluster API key
 - <i>password</i> cluster API secret
 
