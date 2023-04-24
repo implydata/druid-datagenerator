@@ -183,22 +183,32 @@ class PrintFile:
 class PrintKafka:
     producer = None
     topic = None
-    def __init__(self, endpoint, topic, security_protocol, compression_type):
+    def __init__(self, endpoint, topic, security_protocol, compression_type, topic_key):
         #print('PrintKafka('+str(endpoint)+', '+str(topic)+', '+str(security_protocol)+', '+str(compression_type)+')')
         self.endpoint = endpoint
         self.producer = KafkaProducer(bootstrap_servers=endpoint, security_protocol=security_protocol, compression_type=compression_type, value_serializer=lambda v: json.dumps(v).encode('utf-8'))
         self.topic = topic
+        self.topic_key=topic_key
     def __str__(self):
-        return 'PrintKafka(endpoint='+self.endpoint+', topic='+self.topic+')'
+        return 'PrintKafka(endpoint='+self.endpoint+', topic='+self.topic+', topic_key='+self.topic_key+')'
     def print(self, record):
         self.producer.send(self.topic, json.loads(str(record)))
+        if len(self.topic_key) == 0:
+            self.producer.send(topic=self.topic, value=str(record))
+        else:
+            key = ''
+            json_record = json.loads(record)
+            for dim in self.topic_key:
+                key+=json_record[dim]
+            self.producer.send(topic=self.topic, value=str(record), key=key)
+        self.producer.flush()
 
 class PrintConfluent:
     producer = None
     topic = None
     username = None
     password = None
-    def __init__(self, servers, topic, username, password):
+    def __init__(self, servers, topic, username, password, topic_key):
         #print('PrintKafka('+str(endpoint)+', '+str(topic)+', '+str(security_protocol)+', '+str(compression_type)+')')
         self.servers = servers
         self.producer = Producer({
@@ -211,11 +221,19 @@ class PrintConfluent:
         self.topic = topic
         self.username = username
         self.password = password
+        self.topic_key = topic_key
     def __str__(self):
-        return 'PrintConfluent(servers='+self.servers+', topic='+self.topic+', username='+self.username+', password='+self.password+')'
+        return 'PrintConfluent(servers='+self.servers+', topic='+self.topic+', username='+self.username+', password='+self.password+', topic_key='+self.topic_key+')'
     def print(self, record):
         print('producing '+str(record))
-        self.producer.produce(topic=self.topic, value=str(record))
+        if len(self.topic_key) == 0:
+            self.producer.produce(topic=self.topic, value=str(record))
+        else:
+            key = ''
+            json_record = json.loads(record)
+            for dim in self.topic_key:
+                key+=json_record[dim]
+            self.producer.produce(topic=self.topic, value=str(record), key=key)
         self.producer.flush()
 
 
@@ -1019,7 +1037,11 @@ def simulate(config_file_name, runtime, total_recs, time_type, start_time):
         else:
             print('Error: Confluent target requires a password')
             exit()
-        target_printer = PrintConfluent(servers, topic, username, password)
+        if 'topic_key' in target.keys():
+            topic_key = target['topic_key']
+        else:
+            topic_key = []
+        target_printer = PrintConfluent(servers, topic, username, password, topic_key)
     else:
         print('Error: Unknown target type "'+target['type']+'"')
         exit()

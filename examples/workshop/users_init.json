@@ -1,0 +1,106 @@
+{
+  "target": {
+     "type": "confluent",
+     "servers": "pkc-n00kk.us-east-1.aws.confluent.cloud:9092",
+     "topic": "userinfo",
+     "topic_key": ["user_id"],
+     "username": "VIRUYKIAXVYANP4P",
+     "password": "TMixLIzih5Pb5sa0a1k6WyBiAduavzkJHeHOfgZgLUAIt+pDPag2GiXoCWUkkFiM"
+   },
+  "emitters": [
+      {
+	"name":"user_info",
+        "dimensions":[
+	   {"type":"variable", "name":"user_id", "variable":"user_id" },
+	   {"type":"variable", "name":"first_name", "variable":"first_name" },
+	   {"type":"variable", "name":"last_name", "variable":"last_name" },
+	   {"type":"variable", "name":"dob", "variable":"dob" },
+	   {"type":"variable", "name":"address_lat", "variable":"address_lat" },
+	   {"type":"variable", "name":"address_long", "variable":"address_long" },
+	   {"type":"variable", "name":"marital_status", "variable":"marital_status" },
+	   {"type":"variable", "name":"income", "variable":"income" },
+	   {"type":"variable", "name":"signup_ts", "variable":"signup_ts" }
+	]
+      }
+   ],
+  "interarrival": {"type": "exponential", "mean": 0.01},
+  "states": [
+    {
+      "name": "user_info_generate",
+      "emitter": "user_info",
+      "variables": [
+        {
+          "type": "counter",
+          "name": "user_id",
+          "start":0,
+          "increment": 1
+        },
+        {
+          "type":"enum",
+          "name":"first_name",
+          "values":["Muhammad", "Liam", "Noah", "Ethan", "Oliver", "Aiden", "Jackson", "Caden", "Grayson", "Lucas", "Mason", "Logan", "Noah", "Elijah", "Jack", "Jacob", "William", "James", "Alexander", "Benjamin", "Michael", "Daniel", "Matthew", "Sofia", "Emma", "Olivia", "Ava", "Isabella", "Mia", "Charlotte", "Sergio", "Mark","Peter","Steve"],
+          "cardinality_distribution": {"type": "exponential", "mean": 10}
+        },
+        {
+	        "type": "enum",
+	        "name": "last_name",
+	        "values": ["Smith", "Johnson", "Garcia", "Martinez", "Brown", "Miller", "Gonzalez", "Davis", "Rodriguez", "Martinez", "Lee", "Hernandez", "White", "Allen", "Young", "King", "Wright", "Scott", "Green", "Adams", "Baker", "Nelson", "Carter", "Mitchell", "Perez", "Roberts", "Turner", "Phillips", "Campbell", "Parker", "Lee", "Zhang", "Wang", "Kim", "Nguyen", "Garcia", "Lopez", "Gonzalez", "Rodriguez", "Martinez", "Hernandez", "Smith", "Johnson", "Williams", "Jones", "Brown", "Davis", "Miller", "Wilson", "Moore", "Taylor", "Anderson", "Jackson", "Thomas", "Martin", "White", "Thompson", "Gomez", "Perez", "Ferragut", "Herrera", "Marshall","Halladay"],
+          "cardinality_distribution": {"type": "exponential", "mean":10}
+	},
+        {
+          "name":"dob",
+	        "type":"timestamp",
+          "distribution": {
+                "type": "uniform",
+                "min": "1915-01-01T00:00:00.0Z",
+                "max": "2015-01-01T00:00:00.0Z"
+          },
+          "cardinality": 3650,
+          "cardinality_distribution": {"type":"exponential", "mean":2000}
+	},
+        {
+          "name":"address_lat",
+          "type":"float",
+          "distribution":{"type":"uniform", "min":-90.0, "max":90.0},
+          "cardinality":180,
+          "cardinality_distribution": {"type":"exponential","mean":120}
+	},
+        {
+          "name":"address_long",
+          "type":"float",
+          "distribution":{"type":"uniform", "min":-180.0, "max":180.0},
+          "cardinality":360,
+          "cardinality_distribution": {"type":"exponential","mean":270}
+	},
+        {
+	        "name":"marital_status",
+	        "type":"enum",
+          "values":["single","married","divorced","widowed"],
+          "cardinality_distribution": {"type":"exponential","mean":2}
+	},
+        {
+          "name":"income",
+          "type":"int",
+          "distribution":{"type":"uniform", "min":40000, "max":500000},
+          "cardinality":100,
+          "cardinality_distribution": {"type":"exponential","mean":10}
+	},
+        {
+          "name":"signup_ts",
+	  "type":"timestamp",
+          "distribution": {
+                "type": "uniform",
+                "min": "2011-01-01T00:00:00.0Z",
+                "max": "2015-01-01T00:00:00.0Z"
+          },
+          "cardinality": 3650,
+          "cardinality_distribution": {"type":"exponential", "mean":2000}
+	}
+      ],
+      "delay": { "type":"normal", "mean":600, "stddev":10 },
+      "transitions":[
+        {"next":"stop", "probability":1}
+      ]
+    }
+  ]
+}
