@@ -1,0 +1,289 @@
+{
+  "target": {
+     "type": "kafka",
+     "endpoint": "host.docker.internal:9092",
+     "topic": "clicks",
+     "topic_key": ["user_id"]
+   },
+  "emitters": [
+    {
+    "name": "click",
+    "dimensions": [
+      {"type": "variable", "name": "user_id", "variable": "user_id"},
+      {"type": "variable", "name": "event_type", "variable": "event_type"},
+      {"type": "variable", "name": "client_ip", "variable": "client_ip"},
+      {"type": "variable", "name": "client_device","variable": "client_device"},
+      {"type": "variable", "name": "client_lang", "variable": "client_lang"},
+      {"type": "variable", "name": "client_country", "variable": "client_country"},
+      {"type": "variable", "name": "referrer", "variable": "referrer"},
+      {"type": "variable", "name": "keyword", "variable": "keyword"},
+      {"type": "variable", "name": "product", "variable": "product"}
+    ]
+    }
+  ],
+  "interarrival": {"type": "exponential", "mean": 0.1},
+  "states": [
+    {
+      "name": "login",
+      "emitter": "click",
+      "variables": [
+        {
+          "type": "int",
+          "name": "user_id",
+          "distribution": {"type":"uniform", "min": 0, "max":4000 },
+          "cardinality":0,
+          "cardinality_distribution": {"type": "uniform", "min": 0, "max":4000}
+        },
+        {
+          "type": "ipaddress",
+          "name": "client_ip",
+          "distribution": {"type": "uniform", "min": 2130706433, "max": 2147483647},
+          "cardinality": 1000,
+          "cardinality_distribution": {"type": "exponential", "mean": 100}
+        },
+      	{
+          "type": "enum",
+           "name": "event_type",
+           "values": ["login"],
+           "cardinality_distribution": {"type": "constant", "value": 0}
+      	},
+        {
+          "type": "enum",
+          "name": "client_device",
+          "values": [
+            "mobile",
+            "tablet",
+            "laptop",
+            "desktop"
+          ],
+          "cardinality_distribution": {"type": "exponential", "mean":2}
+        },
+        {
+          "type": "enum",
+          "name": "client_lang",
+          "values": [
+            "Russian",
+            "French",
+            "Mandarin",
+            "English",
+            "Hindi",
+            "Spanish",
+            "Arabic",
+            "Portuguese"
+          ],
+          "cardinality_distribution": {"type": "normal", "mean": 3, "stddev": 2}
+        },
+        {
+          "type": "enum",
+          "name": "client_country",
+          "values": [
+            "Vietnam",
+            "Philippines",
+            "Mexico",
+            "Bazil",
+            "Pakistan",
+            "United States",
+            "China",
+            "India",
+            "Indonesia",
+            "Nigeria",
+            "Russia",
+            "Japan",
+            "Egypt"
+          ],
+          "cardinality_distribution": {"type": "normal", "mean": 6, "stddev": 4}
+        },
+        {
+          "type": "enum",
+          "name": "referrer",
+          "values": [
+            "twitter.com/post",
+            "google.com/search",
+            "facebook.com/referring-group",
+            "bing.com/search",
+            "amazon.com",
+            "adserve.com",
+            "adsRus.com",
+            "unknown"
+          ],
+          "cardinality_distribution": {"type": "normal", "mean": 5, "stddev": 3}
+        },
+        {
+          "type": "enum",
+          "name": "product",
+          "values": [ null     ],
+          "cardinality_distribution": {"type": "constant", "value": 0}
+        },
+        {
+          "type": "enum",
+          "name": "keyword",
+          "values": [ null     ],
+          "cardinality_distribution": {"type": "constant", "value": 0}
+        }
+      ],
+      "delay": {"type": "exponential", "mean": 20},
+      "transitions": [
+        {"next": "home", "probability": 1}
+      ]
+    },
+    {
+      "name": "home",
+      "emitter": "click",
+      "variables": [
+        {
+          "type": "enum",
+           "name": "event_type",
+           "values": ["home"],
+           "cardinality_distribution": {"type": "constant", "value": 0}
+        }
+      ],
+      "delay": {"type": "exponential", "mean": 20},
+      "transitions": [
+        {"next": "search", "probability": 0.95},
+        {"next": "viewcart", "probability": 0.05}
+      ]
+    },
+    {
+      "name": "search",
+      "emitter": "click",
+      "variables": [
+        {
+          "type": "enum",
+           "name": "event_type",
+           "values": ["search"],
+           "cardinality_distribution": {"type": "constant", "value": 0}
+        },
+        {
+          "type": "enum",
+          "name": "product",
+          "values": [ "Fidget spinner", "Rubber chicken", "Slinky", "Magic 8-ball", "Pet rock", "Mood ring", "Fake mustache", "Whoopee cushion", "Inflatable pool float", "Gag glasses", "Silly putty", "Squishy toys", "Giant inflatable unicorn", "Hand buzzer", "Chattering teeth", "Novelty socks", "Drinking bird toy", "Potty putter", "Electric shock pen", "Bubble wrap suit", "Light-up flashing gloves", "Finger hands", "Bacon-scented air freshener", "Shave and play Barbie", "Novelty toilet paper", "Cow costume", "Remote control fart machine", "Banana slicer", "Watermelon ball", "Handerpants", "Stress balls", "Dinosaur-shaped taco holder", "Giant gummy bear", "Pineapple corer", "Cactus-shaped candles", "Wine bottle glass", "Cat butt tissue holder", "Mermaid tail blanket", "Pizza scissors", "Toilet golf putting green"     ],
+          "cardinality_distribution": {"type": "exponential", "mean": 20}
+        },
+        {
+          "type": "enum",
+          "name": "keyword",
+          "values": [ "gifts", "Gag gifts", "Funny gifts", "Unique gifts", "Unusual gifts", "Cool gadgets", "Geeky gifts", "Quirky gifts", "toys", "Prank gifts", "Retro gifts", "mugs", "socks", "t-shirts", "hats", "glasses", "pens", "phone cases", "keychains", "kitchen gadgets", "office supplies", "home decor", "clocks", "lights", "party supplies", "costumes", "jewelry", "bags", "wallets", "shoes"     ],
+          "cardinality_distribution": {"type": "exponential", "mean": 10}
+        }
+      ],
+      "delay": {"type": "exponential", "mean": 20},
+      "transitions": [
+        {"next": "product", "probability": 0.55},
+        {"next": "search", "probability": 0.40},
+        {"next": "home", "probability": 0.05}
+
+      ]
+    },
+    {
+      "name": "viewcart",
+      "emitter": "click",
+      "delay": {"type": "exponential", "mean": 20},
+      "variables": [
+        {
+          "type": "enum",
+           "name": "event_type",
+           "values": ["view_cart"],
+           "cardinality_distribution": {"type": "constant", "value": 0}
+        }
+      ],
+      "transitions": [
+        {"next": "search", "probability": 0.50},
+        {"next": "purchase", "probability": 0.25},
+        {"next": "product", "probability": 0.20},
+        {"next": "dropcart", "probability":0.05}
+      ]
+    },
+    {
+      "name": "product",
+      "emitter": "click",
+      "variables": [
+        {
+          "type": "enum",
+           "name": "event_type",
+           "values": ["view_product"],
+           "cardinality_distribution": {"type": "constant", "value": 0}
+        }
+      ],
+      "delay": {"type": "exponential", "mean": 20},
+      "transitions": [
+        {"next": "search", "probability": 0.50},
+        {"next": "addcart", "probability": 0.15},
+        {"next": "product_detail", "probability": 0.35}
+      ]
+    },
+    {
+      "name": "product_detail",
+      "emitter": "click",
+      "delay": {"type": "exponential", "mean": 20},
+      "variables": [
+        {
+          "type": "enum",
+           "name": "event_type",
+           "values": ["product_detail"],
+           "cardinality_distribution": {"type": "constant", "value": 0}
+        }
+      ],
+      "transitions": [
+        {"next": "addcart", "probability": 0.80},
+        {"next": "viewcart", "probability": 0.05},
+        {"next": "search", "probability":0.15}
+      ]
+    },
+    {
+      "name": "addcart",
+      "emitter": "click",
+      "delay": {"type": "exponential", "mean": 20},
+      "variables": [
+        {
+          "type": "enum",
+           "name": "event_type",
+           "values": ["add_to_cart"],
+           "cardinality_distribution": {"type": "constant", "value": 0}
+        }
+      ],
+      "transitions": [
+        {"next": "search", "probability": 0.20},
+        {"next": "viewcart", "probability": 0.80}
+      ]
+    },
+    {
+      "name": "dropcart",
+      "emitter": "click",
+      "delay": {"type": "exponential", "mean": 20},
+      "variables":[
+        {
+          "type": "enum",
+          "name": "product",
+          "values": [ null     ],
+          "cardinality_distribution": {"type": "constant", "value": 0}
+        },
+        {
+          "type": "enum",
+           "name": "event_type",
+           "values": ["drop_from_cart"],
+           "cardinality_distribution": {"type": "constant", "value": 0}
+        }
+      ],
+      "transitions": [
+        {"next": "search", "probability": 1}
+      ]
+    },
+    {
+      "name": "purchase",
+      "emitter": "click",
+      "variables": [
+        {
+          "type": "enum",
+           "name": "event_type",
+           "values": ["purchase"],
+           "cardinality_distribution": {"type": "constant", "value": 0}
+        }
+      ],
+      "delay": {"type": "exponential", "mean": 20},
+      "transitions": [
+        {"next": "home", "probability": 0.50},
+        {"next": "stop", "probability": 0.50}
+      ]
+    }
+  ]
+}

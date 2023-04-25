@@ -8,6 +8,8 @@ WORKDIR /driver
 
 RUN pip install python-dateutil \
   && pip install kafka-python \
+  && pip install confluent-kafka \
+  && pip install sortedcontainers \
   && pip install numpy
 
 COPY DruidDataDriver.py .

@@ -186,21 +186,20 @@ class PrintKafka:
     def __init__(self, endpoint, topic, security_protocol, compression_type, topic_key):
         #print('PrintKafka('+str(endpoint)+', '+str(topic)+', '+str(security_protocol)+', '+str(compression_type)+')')
         self.endpoint = endpoint
-        self.producer = KafkaProducer(bootstrap_servers=endpoint, security_protocol=security_protocol, compression_type=compression_type, value_serializer=lambda v: json.dumps(v).encode('utf-8'))
+        self.producer = KafkaProducer(bootstrap_servers=endpoint, security_protocol=security_protocol, compression_type=compression_type) # , value_serializer=lambda v: json.dumps(v).encode('utf-8'))
         self.topic = topic
         self.topic_key=topic_key
     def __str__(self):
         return 'PrintKafka(endpoint='+self.endpoint+', topic='+self.topic+', topic_key='+self.topic_key+')'
     def print(self, record):
-        self.producer.send(self.topic, json.loads(str(record)))
         if len(self.topic_key) == 0:
-            self.producer.send(topic=self.topic, value=str(record))
+            self.producer.send(topic=self.topic, value=bytes(record, 'utf-8'))
         else:
             key = ''
             json_record = json.loads(record)
             for dim in self.topic_key:
                 key+=json_record[dim]
-            self.producer.send(topic=self.topic, value=str(record), key=key)
+            self.producer.send(topic=self.topic, value=bytes(record, 'utf-8'), key=bytes(key, 'utf-8'))
         self.producer.flush()
 
 class PrintConfluent:
@@ -1015,7 +1014,11 @@ def simulate(config_file_name, runtime, total_recs, time_type, start_time):
             compression_type = target['compression_type']
         else:
             compression_type = None
-        target_printer = PrintKafka(endpoint, topic, security_protocol, compression_type)
+        if 'topic_key' in target.keys():
+            topic_key = target['topic_key']
+        else:
+            topic_key = []
+        target_printer = PrintKafka(endpoint, topic, security_protocol, compression_type, topic_key)
     elif target['type'].lower() == 'confluent':
         if 'servers' in target.keys():
             servers = target['servers']
