@@ -1,11 +1,11 @@
 {
   "target": {
      "type": "confluent",
-     "servers": "pkc-n00kk.us-east-1.aws.confluent.cloud:9092",
-     "topic": "clicks",
+     "servers": "<BOOTSTRAP SERVERS>",
+     "topic": "workshop_userinfo",
      "topic_key": ["user_id"],
-     "username": "VIRUYKIAXVYANP4P",
-     "password": "TMixLIzih5Pb5sa0a1k6WyBiAduavzkJHeHOfgZgLUAIt+pDPag2GiXoCWUkkFiM"
+     "username": "<ACCESS KEY>",
+     "password": "<ACCESS SECRET>"
    },
   "emitters": [
     {
@@ -23,7 +23,7 @@
     ]
     }
   ],
-  "interarrival": {"type": "exponential", "mean": 0.1},
+  "interarrival": {"type": "exponential", "mean": 10},
   "states": [
     {
       "name": "login",
@@ -32,7 +32,7 @@
         {
           "type": "int",
           "name": "user_id",
-          "distribution": {"type":"uniform", "min": 0, "max":4000 },
+          "distribution": {"type":"uniform", "min": 0, "max":40 },
           "cardinality":0,
           "cardinality_distribution": {"type": "uniform", "min": 0, "max":4000}
         },
@@ -44,8 +44,8 @@
           "cardinality_distribution": {"type": "exponential", "mean": 100}
         },
       	{
-          "type": "enum", 
-           "name": "event_type", 
+          "type": "enum",
+           "name": "event_type",
            "values": ["login"],
            "cardinality_distribution": {"type": "constant", "value": 0}
       	},
@@ -106,7 +106,7 @@
             "amazon.com",
             "adserve.com",
             "adsRus.com",
-            "unknown"     
+            "unknown"
           ],
           "cardinality_distribution": {"type": "normal", "mean": 5, "stddev": 3}
         },
@@ -133,8 +133,8 @@
       "emitter": "click",
       "variables": [
         {
-          "type": "enum", 
-           "name": "event_type", 
+          "type": "enum",
+           "name": "event_type",
            "values": ["home"],
            "cardinality_distribution": {"type": "constant", "value": 0}
         }
@@ -150,8 +150,8 @@
       "emitter": "click",
       "variables": [
         {
-          "type": "enum", 
-           "name": "event_type", 
+          "type": "enum",
+           "name": "event_type",
            "values": ["search"],
            "cardinality_distribution": {"type": "constant", "value": 0}
         },
@@ -173,7 +173,7 @@
         {"next": "product", "probability": 0.55},
         {"next": "search", "probability": 0.40},
         {"next": "home", "probability": 0.05}
-         
+
       ]
     },
     {
@@ -182,8 +182,8 @@
       "delay": {"type": "exponential", "mean": 20},
       "variables": [
         {
-          "type": "enum", 
-           "name": "event_type", 
+          "type": "enum",
+           "name": "event_type",
            "values": ["view_cart"],
            "cardinality_distribution": {"type": "constant", "value": 0}
         }
@@ -200,8 +200,8 @@
       "emitter": "click",
       "variables": [
         {
-          "type": "enum", 
-           "name": "event_type", 
+          "type": "enum",
+           "name": "event_type",
            "values": ["view_product"],
            "cardinality_distribution": {"type": "constant", "value": 0}
         }
@@ -219,8 +219,8 @@
       "delay": {"type": "exponential", "mean": 20},
       "variables": [
         {
-          "type": "enum", 
-           "name": "event_type", 
+          "type": "enum",
+           "name": "event_type",
            "values": ["product_detail"],
            "cardinality_distribution": {"type": "constant", "value": 0}
         }
@@ -237,8 +237,8 @@
       "delay": {"type": "exponential", "mean": 20},
       "variables": [
         {
-          "type": "enum", 
-           "name": "event_type", 
+          "type": "enum",
+           "name": "event_type",
            "values": ["add_to_cart"],
            "cardinality_distribution": {"type": "constant", "value": 0}
         }
@@ -260,8 +260,8 @@
           "cardinality_distribution": {"type": "constant", "value": 0}
         },
         {
-          "type": "enum", 
-           "name": "event_type", 
+          "type": "enum",
+           "name": "event_type",
            "values": ["drop_from_cart"],
            "cardinality_distribution": {"type": "constant", "value": 0}
         }
@@ -275,8 +275,8 @@
       "emitter": "click",
       "variables": [
         {
-          "type": "enum", 
-           "name": "event_type", 
+          "type": "enum",
+           "name": "event_type",
            "values": ["purchase"],
            "cardinality_distribution": {"type": "constant", "value": 0}
         }

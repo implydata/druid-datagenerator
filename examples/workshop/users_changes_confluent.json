@@ -1,11 +1,11 @@
 {
   "target": {
      "type": "confluent",
-     "servers": "pkc-n00kk.us-east-1.aws.confluent.cloud:9092",
-     "topic": "userinfo",
+     "servers": "<BOOTSTRAP SERVERS>",
+     "topic": "workshop_userinfo",
      "topic_key": ["user_id"],
-     "username": "VIRUYKIAXVYANP4P",
-     "password": "TMixLIzih5Pb5sa0a1k6WyBiAduavzkJHeHOfgZgLUAIt+pDPag2GiXoCWUkkFiM"
+     "username": "<ACCESS KEY>",
+     "password": "<ACCESS SECRET>"
    },
   "emitters": [
       {
@@ -23,7 +23,7 @@
   ]
       }
    ],
-  "interarrival": {"type": "exponential", "mean": 20},
+  "interarrival": {"type": "exponential", "mean": 60},
   "states": [
     {
       "name": "user_info_generate",
