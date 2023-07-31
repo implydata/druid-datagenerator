@@ -1,12 +1,4 @@
 {
-  "target": {
-     "type": "confluent",
-     "servers": "<BOOTSTRAP SERVERS>",
-     "topic": "workshop_userinfo",
-     "topic_key": ["user_id"],
-     "username": "<ACCESS KEY>",
-     "password": "<ACCESS SECRET>"
-   },
   "emitters": [
       {
   "name":"user_info",
@@ -23,7 +15,7 @@
   ]
       }
    ],
-  "interarrival": {"type": "exponential", "mean": 60},
+  "interarrival": {"type": "exponential", "mean": 20},
   "states": [
     {
       "name": "user_info_generate",

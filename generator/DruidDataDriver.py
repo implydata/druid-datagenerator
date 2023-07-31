@@ -3,6 +3,8 @@
 #
 
 import argparse
+import math
+
 from confluent_kafka import Producer
 import dateutil.parser
 from datetime import datetime, timedelta
@@ -19,7 +21,7 @@ import time
 
 ############################################################################
 #
-# DruidDataDriver simulates Druid workloads by producing JSON records.
+# DruidDataDriver generates JSON records and outputs them to a file or a stream
 # Use a JSON config file to describe the characteristics of the workload
 # you want to simulate.
 #
@@ -65,6 +67,7 @@ class Clock:
 
     def __init__(self, time_type, start_time = datetime.now()):
         self.sim_time = start_time
+        self.start_time = start_time
         self.time_type = time_type
 
     def __str__(self):
@@ -73,6 +76,10 @@ class Clock:
             s += ', '+str(e)
         s += ')'
         return s
+
+    def get_duration(self) :
+        time_delta = self.now() - self.start_time
+        return time_delta.total_seconds()
 
     def activate_thread(self):
         if self.time_type == 'SIM':
@@ -124,7 +131,7 @@ class Clock:
     def resume(self, event):
         event.resume()
 
-    def now(self):
+    def now(self) -> datetime:
         if self.time_type == 'SIM':
             t = self.sim_time
         else:
@@ -868,6 +875,7 @@ class SimEnd:
         self.total_recs = total_recs
         self.record_count = 0
         self.global_clock = global_clock
+        self.entity_count = 0
         if runtime is None:
             self.t = None
         else:
@@ -880,6 +888,19 @@ class SimEnd:
             else:
                 print('Error: Unknown runtime value"'+runtime+'"')
                 exit()
+
+    def get_entity_count(self):
+        return self.entity_count
+
+    def add_entity(self):
+        self.lock.acquire()
+        self.entity_count +=1
+        self.lock.release()
+
+    def remove_entity(self):
+        self.lock.acquire()
+        self.entity_count -=1
+        self.lock.release()
 
     def inc_rec_count(self):
         self.lock.acquire()
@@ -904,208 +925,231 @@ class SimEnd:
             while True:
                 time.sleep(60)
 
+    def get_duration(self):
+        return self.global_clock.get_duration()
+
+    def get_record_count(self):
+        return self.record_count;
+
+    def terminate(self):
+        self.record_count = self.total_recs
+        self.thread_end_event.set()
+
 
 #
 # Run the driver
 #
+class DataDriver:
+    def __init__(self, config, target, runtime, total_recs, time_type, start_time, max_entities):
+        self.config = config
+        self.target = target
+        self.runtime = runtime
+        self.total_recs = total_recs
+        self.time_type = time_type
+        self.start_time = start_time
+        self.max_entities = max_entities
 
-def create_record(dimensions, variables):
-    json_string = '{'
-    for element in dimensions:
-        if isinstance(element, ElementVariable):
-            json_string += element.get_json_field_string(variables) + ','
+
+
+        #
+        # Set up the gloabl clock
+        #
+
+        self.global_clock = Clock(time_type, start_time)
+        self.sim_control = SimEnd(total_recs, runtime, self.global_clock)
+
+
+        #
+        # Set up the output target
+        #
+
+        if target['type'].lower() == 'stdout':
+            self.target_printer = PrintStdout()
+        elif target['type'].lower() == 'file':
+            path = target['path']
+            if path is None:
+                print('Error: File target requires a path item')
+                exit()
+            self.target_printer = PrintFile(path)
+        elif target['type'].lower() == 'kafka':
+            if 'endpoint' in target.keys():
+                endpoint = target['endpoint']
+            else:
+                print('Error: Kafka target requires an endpoint item')
+                exit()
+            if 'topic' in target.keys():
+                topic = target['topic']
+            else:
+                print('Error: Kafka target requires a topic item')
+                exit()
+            if 'security_protocol' in target.keys():
+                security_protocol = target['security_protocol']
+            else:
+                security_protocol = 'PLAINTEXT'
+            if 'compression_type' in target.keys():
+                compression_type = target['compression_type']
+            else:
+                compression_type = None
+            if 'topic_key' in target.keys():
+                topic_key = target['topic_key']
+            else:
+                topic_key = []
+            self.target_printer = PrintKafka(endpoint, topic, security_protocol, compression_type, topic_key)
+        elif target['type'].lower() == 'confluent':
+            if 'servers' in target.keys():
+                servers = target['servers']
+            else:
+                print('Error: Conlfuent target requires a servers item')
+                exit()
+            if 'topic' in target.keys():
+                topic = target['topic']
+            else:
+                print('Error: Confluent target requires a topic item')
+                exit()
+            if 'username' in target.keys():
+                username = target['username']
+            else:
+                print('Error: Confluent target requires a username')
+                exit()
+            if 'password' in target.keys():
+                password = target['password']
+            else:
+                print('Error: Confluent target requires a password')
+                exit()
+            if 'topic_key' in target.keys():
+                topic_key = target['topic_key']
+            else:
+                topic_key = []
+            self.target_printer = PrintConfluent(servers, topic, username, password, topic_key)
         else:
-            if isinstance(element, ElementNow) or not element.is_missing():
-                json_string += element.get_json_field_string() + ','
-    json_string = json_string[:-1] + '}'
-    return json_string
-
-def set_variable_values(variables, dimensions):
-    for d in dimensions:
-        variables[d.name] = d.get_stochastic_value()
-
-def worker_thread(target_printer, states, initial_state, sim_end, global_clock):
-    # Process the state machine using worker threads
-    #print('Thread '+threading.current_thread().name+' starting...')
-    global_clock.activate_thread()
-    current_state = initial_state
-    variables = {}
-    while True:
-        set_variable_values(variables, current_state.variables)
-        record = create_record(current_state.dimensions, variables)
-        target_printer.print(record)
-        sim_end.inc_rec_count()
-        if sim_end.is_done():
-            break
-        delta = float(current_state.delay.get_sample())
-        global_clock.sleep(delta)
-        if sim_end.is_done():
-            break
-        next_state_name = current_state.get_next_state_name()
-        if next_state_name.lower() == 'stop':
-            break
-        current_state = states[next_state_name]
-
-    #print('Thread '+threading.current_thread().name+' done!')
-    global_clock.end_thread()
-
-def spawning_thread(target_printer, rate_delay, states, initial_state, sim_end, global_clock):
-    #print('Thread '+threading.current_thread().name+' starting...')
-    global_clock.activate_thread()
-    # Spawn the workers in a separate thread so we can stop the whole thing in the middle of spawning if necessary
-    count = 0
-    while not sim_end.is_done():
-        thread_name = 'W'+str(count)
-
-        count += 1
-        t = threading.Thread(target=worker_thread, args=(target_printer, states, initial_state, sim_end, global_clock, ), name=thread_name, daemon=True)
-        t.start()
-        global_clock.sleep(float(rate_delay.get_sample()))
-    global_clock.end_thread()
-    #print('Thread '+threading.current_thread().name+' done!')
-
-
-def simulate(config_file_name, runtime, total_recs, time_type, start_time):
-
-    if config_file_name:
-        with open(config_file_name, 'r') as f:
-            config = json.load(f)
-    else:
-        config = json.load(sys.stdin)
-
-    #
-    # Set up the gloabl clock
-    #
-
-    global_clock = Clock(time_type, start_time)
-    sim_end = SimEnd(total_recs, runtime, global_clock)
-
-
-    #
-    # Set up the output target
-    #
-
-    target = config['target']
-
-    if target['type'].lower() == 'stdout':
-        target_printer = PrintStdout()
-    elif target['type'].lower() == 'file':
-        path = target['path']
-        if path is None:
-            print('Error: File target requires a path item')
+            print('Error: Unknown target type "'+target['type']+'"')
             exit()
-        target_printer = PrintFile(path)
-    elif target['type'].lower() == 'kafka':
-        if 'endpoint' in target.keys():
-            endpoint = target['endpoint']
-        else:
-            print('Error: Kafka target requires an endpoint item')
-            exit()
-        if 'topic' in target.keys():
-            topic = target['topic']
-        else:
-            print('Error: Kafka target requires a topic item')
-            exit()
-        if 'security_protocol' in target.keys():
-            security_protocol = target['security_protocol']
-        else:
-            security_protocol = 'PLAINTEXT'
-        if 'compression_type' in target.keys():
-            compression_type = target['compression_type']
-        else:
-            compression_type = None
-        if 'topic_key' in target.keys():
-            topic_key = target['topic_key']
-        else:
-            topic_key = []
-        target_printer = PrintKafka(endpoint, topic, security_protocol, compression_type, topic_key)
-    elif target['type'].lower() == 'confluent':
-        if 'servers' in target.keys():
-            servers = target['servers']
-        else:
-            print('Error: Conlfuent target requires a servers item')
-            exit()
-        if 'topic' in target.keys():
-            topic = target['topic']
-        else:
-            print('Error: Confluent target requires a topic item')
-            exit()
-        if 'username' in target.keys():
-            username = target['username']
-        else:
-            print('Error: Confluent target requires a username')
-            exit()
-        if 'password' in target.keys():
-            password = target['password']
-        else:
-            print('Error: Confluent target requires a password')
-            exit()
-        if 'topic_key' in target.keys():
-            topic_key = target['topic_key']
-        else:
-            topic_key = []
-        target_printer = PrintConfluent(servers, topic, username, password, topic_key)
-    else:
-        print('Error: Unknown target type "'+target['type']+'"')
-        exit()
 
-    #sys.stderr.write('target='+str(target_printer)+'\n')
+        #
+        # Set up the interarrival rate
+        #
+
+        rate = self.config['interarrival']
+        self.rate_delay = parse_distribution(rate)
+
+        #sys.stderr.write('rate_delay='+str(rate_delay)+'\n')
 
 
-    #
-    # Set up the interarrival rate
-    #
+        #
+        # Set up emitters list
+        #
 
-    rate = config['interarrival']
-    rate_delay = parse_distribution(rate)
-
-    #sys.stderr.write('rate_delay='+str(rate_delay)+'\n')
-
-
-    #
-    # Set up emitters list
-    #
-
-    emitters = {}
-    for emitter in config['emitters']:
-        name = emitter['name']
-        dimensions = get_dimensions(emitter['dimensions'], global_clock)
-        emitters[name] = dimensions
-
-    #sys.stderr.write('emitters='+str(['(name='+str(key)+', dimensions='+str([str(e) for e in emitters[key]])+')' for key in emitters])+'\n')
+        self.emitters = {}
+        for emitter in self.config['emitters']:
+            name = emitter['name']
+            dimensions = get_dimensions(emitter['dimensions'], self.global_clock)
+            self.emitters[name] = dimensions
 
 
-    #
-    # Set up the state machine
-    #
+        #
+        # Set up the state machine
+        #
 
-    state_desc = config['states']
-    initial_state = None
-    states = {}
-    for state in state_desc:
-        name = state['name']
-        emitter_name = state['emitter']
-        if 'variables' not in state.keys():
-            variables = []
-        else:
-            variables = get_variables(state['variables'])
-        dimensions = emitters[emitter_name]
-        delay = parse_distribution(state['delay'])
-        transitions = parse_transitions(state['transitions'])
-        this_state = State(name, dimensions, delay, transitions, variables)
-        states[name] = this_state
-        if initial_state == None:
-            initial_state = this_state
+        state_desc = self.config['states']
+        self.initial_state = None
+        self.states = {}
+        for state in state_desc:
+            name = state['name']
+            emitter_name = state['emitter']
+            if 'variables' not in state.keys():
+                variables = []
+            else:
+                variables = get_variables(state['variables'])
+            dimensions = self.emitters[emitter_name]
+            delay = parse_distribution(state['delay'])
+            transitions = parse_transitions(state['transitions'])
+            this_state = State(name, dimensions, delay, transitions, variables)
+            self.states[name] = this_state
+            if self.initial_state == None:
+                self.initial_state = this_state
 
-    #sys.stderr.write('states='+str(['('+str(key)+':'+str(states[key])+')' for key in states])+'\n')
 
-    #
-    # Finally, start the simulation
-    #
+    def create_record(self, dimensions, variables):
+            json_string = '{'
+            for element in dimensions:
+                if isinstance(element, ElementVariable):
+                    json_string += element.get_json_field_string(variables) + ','
+                else:
+                    if isinstance(element, ElementNow) or not element.is_missing():
+                        json_string += element.get_json_field_string() + ','
+            json_string = json_string[:-1] + '}'
+            return json_string
 
-    thrd = threading.Thread(target=spawning_thread, args=(target_printer, rate_delay, states, initial_state, sim_end, global_clock, ), name='Spawning', daemon=True)
-    thrd.start()
-    sim_end.wait_for_end()
+    def set_variable_values(self, variables, dimensions):
+        for d in dimensions:
+            variables[d.name] = d.get_stochastic_value()
+
+    def worker_thread(self):
+        # Process the state machine using worker threads
+        #print('Thread '+threading.current_thread().name+' starting...')
+        self.global_clock.activate_thread()
+        current_state = self.initial_state
+        variables = {}
+        while True:
+            self.set_variable_values(variables, current_state.variables)
+            record = self.create_record(current_state.dimensions, variables)
+            self.target_printer.print(record)
+            self.sim_control.inc_rec_count()
+            if self.sim_control.is_done():
+                break
+            delta = float(current_state.delay.get_sample())
+            self.global_clock.sleep(delta)
+            if self.sim_control.is_done():
+                break
+            next_state_name = current_state.get_next_state_name()
+            if next_state_name.lower() == 'stop':
+                break
+            current_state = self.states[next_state_name]
+
+        #print('Thread '+threading.current_thread().name+' done!')
+        self.global_clock.end_thread()
+        self.sim_control.remove_entity()
+
+    def spawning_thread(self):
+        #print('Thread '+threading.current_thread().name+' starting...')
+        self.global_clock.activate_thread()
+        # Spawn the workers in a separate thread so we can stop the whole thing in the middle of spawning if necessary
+
+        while not self.sim_control.is_done():
+            if (self.sim_control.get_entity_count() < self.max_entities):
+                thread_name = 'W'+str(self.sim_control.get_entity_count())
+                self.sim_control.add_entity()
+                t = threading.Thread(target=self.worker_thread, name=thread_name, daemon=True)
+                t.start()
+            self.global_clock.sleep(float(self.rate_delay.get_sample()))
+        self.global_clock.end_thread()
+        #print('Thread '+threading.current_thread().name+' done!')
+
+
+    def simulate(self):
+
+
+        #sys.stderr.write('states='+str(['('+str(key)+':'+str(states[key])+')' for key in states])+'\n')
+
+        #
+        # Finally, start the simulation
+        #
+
+        #thrd = threading.Thread(target=self.spawning_thread, args=(self.target_printer, self.rate_delay, self.states, self.initial_state, self.sim_end, self.global_clock, ), name='Spawning', daemon=True)
+        thrd = threading.Thread(target=self.spawning_thread, args=(), name='Spawning', daemon=True)
+        thrd.start()
+        self.sim_control.wait_for_end()
+
+    def terminate(self):
+        self.sim_control.terminate()
+
+    def report(self):
+        return {   'config_file': self.config['config_file'],
+                   'target': self.target,
+                  'active_sessions': self.sim_control.get_entity_count(),
+                  'total_records': self.sim_control.get_record_count(),
+                  'run_time': self.sim_control.get_duration()}
+
 
 def main():
 
@@ -1116,14 +1160,18 @@ def main():
     parser = argparse.ArgumentParser(description='Generates JSON records as a workload for Apache Druid.')
     #parser.add_argument('config_file', metavar='<config file name>', help='the workload config file name')
     parser.add_argument('-f', dest='config_file', nargs='?', help='the workload config file name')
+    parser.add_argument('-o', dest='target_file', nargs='?', help='the message output target file name')
     parser.add_argument('-t', dest='time', nargs='?', help='the script runtime (may not be used with -n)')
     parser.add_argument('-n', dest='n_recs', nargs='?', help='the number of records to generate (may not be used with -t)')
     parser.add_argument('-s', dest='time_type', nargs='?', const='SIM', default='REAL', help='simulate time (default is real, not simulated)')
+    parser.add_argument('-m', dest='concurrency', nargs='?', default=100, help='max entities concurrently generating events')
 
     args = parser.parse_args()
 
-    config_file_name = args.config_file
+    config_file_name = f'config_file/{args.config_file}'
+    target_file_name = args.target_file
     runtime = args.time
+    max_entities = args.concurrency
     total_recs = None
     if args.n_recs is not None:
         total_recs = int(args.n_recs)
@@ -1136,14 +1184,26 @@ def main():
         start_time = dateutil.parser.isoparse(time_type)
         time_type = 'SIM'
 
-
     if (runtime is not None) and (total_recs is not None):
         print("Use either -t or -n, but not both")
         parser.print_help()
         exit()
 
 
-    simulate(config_file_name, runtime, total_recs, time_type, start_time)
+    if config_file_name:
+        with open(config_file_name, 'r') as f:
+            config = json.load(f)
+    else:
+        config = json.load(sys.stdin)
+
+    if target_file_name:
+        with open(target_file_name, 'r') as f:
+            target = json.load(f)
+    elif 'target' in config.keys():
+        target = config['target']
+
+    driver = DataDriver(config, target, runtime, total_recs, time_type, start_time, max_entities)
+    driver.simulate()
 
 
 
