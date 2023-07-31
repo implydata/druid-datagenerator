@@ -1,10 +1,4 @@
 {
-  "target": {
-     "type": "kafka",
-     "endpoint": "host.docker.internal:9092",
-     "topic": "userinfo",
-     "topic_key": ["user_id"]
-   },
   "emitters": [
       {
 	"name":"user_info",

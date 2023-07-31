@@ -1,6 +1,83 @@
 # How to use the Druid Data Driver
 
-## Program description
+
+## The Data Driver Server using Docker
+You can run the data driver in a docker container using:
+```
+docker run -d -p 9999:9999 imply/datagen:latest
+```
+
+The server provides the following APIs:
+
+### list
+Lists the data generation configurations available on the server.
+Example:
+```
+curl "http://localhost:9999/list"
+```
+Output: 
+```
+["clickstream/clickstream.json", "clickstream/users_init.json", "clickstream/users_changes.json", "examples/langmap.json", "examples/missing.json", "examples/simple.json", "examples/list.json", "examples/deepthought.json", "examples/variable.json", "examples/nulls.json", "examples/counter.json", "examples/object.json", "examples/types.json"]
+```
+
+### start
+Initiates a data generation process with the specified configuration. The configuration can be selected from the available configurations by using the `config_file` property in the request. Alternatively, a custom configuration can be provided in the `config` property.
+The payload for this request has the following format:
+```json
+{
+    "target": <target specification>,
+    "config": <config JSON>,
+    "config_file": <name of the config file on the server>,
+    "total_events": <total number of messages to generate>,
+    "concurrency": <max number of concurrent state machines>,
+    "time": <duration for data generation>,
+    "time_type": [ "SIM" | "REAL" | <start timestamp>]
+}
+```
+Where:
+- [_"target"_](#target_object): (required) describes where to publish generated data.
+- [_"config"_](): (_config_ or _config_file_ required) custom configuration object.
+- [_"config_file"_](#list): (_config_ or _config_file_ required) [predefined configuration](###GET_/list) is used.
+- _"total_events"_: (optional) total number of events to generate
+- _"time"_: (optional) total duration to run specified in seconds, minutes or hours (ex. "15s", "10m", "5h")
+- _"concurrency"_: (optional) max number of state machines to create
+- _"time_type"_: (optional) "SIM" - simulate time, "REAL" - run in real-time
+  - can be set to a timestamp ("YYYY-MM-DD HH:MM:SS") to use a simulated start time  
+
+Example payload:
+```json
+{
+    "target":{
+      "type": "kafka",
+      "endpoint": "kafka:9092",
+      "topic": "clicks",
+      "topic_key": ["user_id"]
+      },
+    "config_file": "clickstream/clickstream.json",
+    "total_events":10000,
+    "concurrency":100
+}
+```
+
+### stop
+This request will stop all active data generators running on the server.
+Example:
+```
+curl -X POST "http://localhost:9999/stop
+
+Data generation stopped
+```
+
+### status
+Example:
+```
+curl "http://localhost:9999/status"
+
+{"config_file": "clickstream/clickstream.json", "target": {"type": "file", "path": "/tmp/clickstream_data.json"}, "active_sessions": 100, "total_records": 925, "run_time": 170.346579}
+{"config_file": "clickstream/user_init.json", "target": {"type": "file", "path": "/tmp/user_data.json"}, "active_sessions": 100, "total_records": 743, "run_time": 128.065846}%
+```
+
+## Command Line Execution 
 
 The Druid Data Driver is a python script that simulates a workload that generates data for Druid ingestion.
 You can use a JSON config file to describe the characteristics of the workload you want the Druid Data Driver to simulate.
@@ -22,12 +99,13 @@ pip install sortedcontainers
 
 Run the program as follows:
 
-```python DruidDataDriver.py <options>```
+```python generator/DruidDataDriver.py <options>```
 
 Options include:
 
 ```
--f <configuration file name>
+-f <configuration definition file name>
+-o <target definition file name>
 -s <start time in ISO format (optional)>
 -n <total number of records to generate>
 -t <duration for generating records>
@@ -35,6 +113,8 @@ Options include:
 
 Use the _-f_ option to designate a configuration file name.
 If you omit the _-f_ option, the script reads the configuration from _stdin_.
+
+Use the _-o_ option to designate a target definition file name. The [target](###"target"_object) defines where the generated messages are sent.
 
 The _-s_ option tells the driver to use simulated time instead of wall clock time (the default).
 The simulated clock starts at the time specified by the argument (or the current time if no argument is specified) and
@@ -64,11 +144,101 @@ Or, specify 1 hour as follows:
 -t 1H
 ```
 
-## Config File
+#### Example Command Line run:
 
-The config file contains JSON describing the characteristics of the workload you want to simulate (see the _examples_ folder for example config files).
+Create a file for the target definition with:
+```
+echo '{"type":"stdout"}' > /tmp/target
+```
+Run with a predefined data generation config file for 10 seconds:
+```
+python3.11 generator/DruidDataDriver.py -f clickstream/clickstream.json -o /tmp/target -t 10s
+
+{"__time":"2023-07-28T16:26:39.744","user_id":"2816","event_type":"login","client_ip":"127.157.215.28","client_device":"desktop","client_lang":"Spanish","client_country":"Vietnam","referrer":"bing.com/search","keyword":"None","product":"None"}
+{"__time":"2023-07-28T16:26:39.886","user_id":"3273","event_type":"login","client_ip":"127.253.19.98","client_device":"mobile","client_lang":"Mandarin","client_country":"Indonesia","referrer":"adserve.com","keyword":"None","product":"None"}
+{"__time":"2023-07-28T16:26:39.901","user_id":"1565","event_type":"home","client_ip":"127.220.178.38","client_device":"mobile","client_lang":"Russian","client_country":"Philippines","referrer":"bing.com/search","keyword":"None","product":"None"}
+{"__time":"2023-07-28T16:26:39.936","user_id":"3875","event_type":"login","client_ip":"127.33.246.91","client_device":"mobile","client_lang":"French","client_country":"Bazil","referrer":"twitter.com/post","keyword":"None","product":"None"}
+{"__time":"2023-07-28T16:26:40.204","user_id":"654","event_type":"login","client_ip":"127.33.184.203","client_device":"desktop","client_lang":"English","client_country":"United States","referrer":"amazon.com","keyword":"None","product":"None"}
+```
+
+
+
+## Data Generator Target
+The target defines where the data will be written or published.
+
+### "target" object
+
+There are four flavors of targets: _stdout_, _file_, _kafka_, and _confluent_.
+
+_stdout_ targets print the JSON records to standard out and have the form:
+
+```
+"target": {
+  "type": "stdout"
+}
+```
+
+_file_ targets write records to the specified file and have the following format:
+
+```
+"target": {
+  "type": "file",
+  "path": "<filename goes here>"
+}
+```
+
+Where:
+- <i>path</i> is the path and file name
+
+_kafka_ targets write records to a Kafka topic and have this format:
+
+```
+"target": {
+  "type": "kafka",
+  "endpoint": "<ip address and optional port>",
+  "topic": "<topic name>",
+  "topic_key": [<list of key fields>],
+  "security_protocol": "<protocol designation>",
+  "compression_type": "<compression type designation>"
+}
+```
+
+Where:
+- <i>endpoint</i> is the IP address and optional port number (e.g., "127.0.0.1:9092") - if the port is omitted, 9092 is used
+- <i>topic</i> is the topic name as a string
+- <i>topic_key</i> (optional) is the list of generated fields used to build the key for each message
+- <i>security_protocol</i> (optional) a protocol specifier ("PLAINTEXT" (default if omitted), "SSL", "SASL_PLAINTEXT", "SASL_SSL")
+- <i>compression_type</i> (optional) a compression specifier ("gzip", "snappy", "lz4") - if omitted, no compression is used
+
+_confluent_ targets write records to a Confluent topic and have this format:
+
+```
+"target": {
+  "type": "confluent",
+  "servers": "<bootstrap servers>",
+  "topic": "<topic name>",
+  "topic_key": [<list of key fields>],
+  "username": "<username>",
+  "password": "<password>"
+}
+```
+
+Where:
+- <i>servers</i> is the confluent servers (e.g., "pkc-lzvrd.us-west4.gcp.confluent.cloud:9092")
+- <i>topic</i> is the topic name as a string
+- <i>topic_key</i> (optional) is the list of generated fields used to build the key for each message
+- <i>username</i> cluster API key
+- <i>password</i> cluster API secret
+
+
+
+## Data Generator Configuration
+
+The config JSON object describes the characteristics of the workload you want to simulate (see the _examples_ folder for example config files).
 A workload consists of a state machine, where each state outputs a record.
-The state machine is probabilistic, which means that the state transitions may be stochastic based on probabilities.
+New state machines are instantiated based on the `interarrival` property.
+Each state machine can be used to simulate the events generated by an entity like device (IoT) or a user session (clickstream).
+Each state machine is probabilistic, which means that the state transitions may be stochastic based on probabilities.
 Each state in the state machine performs four operations:
 - First, the state sets any variable values
 - Next, the state emits a record (based on an emitter description)
@@ -78,18 +248,16 @@ Each state in the state machine performs four operations:
 Emitters are record generators that output records as specified in the emitter description.
 Each state employs a single emitter, but the same emitter may be used by many states.
 
-The config file has the following format:
+The config JSON has the following format:
 
 ```
 {
-  "target": {...},
   "emitters": [...],
   "interarrival": {...},
   "states": [...]
 }
 ```
 
-The _target_ object describes the output destination.
 The _emitters_ list is a list of record generators.
 The _interarrival_ object describes the inter-arrival times (i.e., inverse of the arrival rate) of entities to the state machine
 The _states_ list is a description of the state machine
@@ -160,70 +328,6 @@ Where:
 - _stddev_ is the stadard deviation of the distribution
 
 Note that negative values generated by the normal distribution may be forced to zero when necessary (e.g., interarrival times).
-
-### "target": {}
-
-There are four flavors of targets: _stdout_, _file_, _kafka_, and _confluent_.
-
-_stdout_ targets print the JSON records to standard out and have the form:
-
-```
-"target": {
-  "type": "stdout"
-}
-```
-
-_file_ targets write records to the specified file and have the following format:
-
-```
-"target": {
-  "type": "file",
-  "path": "<filename goes here>"
-}
-```
-
-Where:
-- <i>path</i> is the path and file name
-
-_kafka_ targets write records to a Kafka topic and have this format:
-
-```
-"target": {
-  "type": "kafka",
-  "endpoint": "<ip address and optional port>",
-  "topic": "<topic name>",
-  "topic_key": [<list of key fields>],
-  "security_protocol": "<protocol designation>",
-  "compression_type": "<compression type designation>"
-}
-```
-
-Where:
-- <i>endpoint</i> is the IP address and optional port number (e.g., "127.0.0.1:9092") - if the port is omitted, 9092 is used
-- <i>topic</i> is the topic name as a string
-- <i>topic_key</i> (optional) is the list of generated fields used to build the key for each message
-- <i>security_protocol</i> (optional) a protocol specifier ("PLAINTEXT" (default if omitted), "SSL", "SASL_PLAINTEXT", "SASL_SSL")
-- <i>compression_type</i> (optional) a compression specifier ("gzip", "snappy", "lz4") - if omitted, no compression is used
-
-_confluent_ targets write records to a Confluent topic and have this format:
-
-```
-"target": {
-  "type": "confluent",
-  "servers": "<bootstrap servers>",
-  "topic": "<topic name>",
-  "topic_key": [<list of key fields>],
-  "username": "<username>",
-  "password": "<password>"
-}
-```
-
-Where:
-- <i>servers</i> is the confluent servers (e.g., "pkc-lzvrd.us-west4.gcp.confluent.cloud:9092")
-- <i>topic</i> is the topic name as a string
-- <i>topic_key</i> (optional) is the list of generated fields used to build the key for each message
-- <i>username</i> cluster API key
-- <i>password</i> cluster API secret
 
 
 ### "emitters": []

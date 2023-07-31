@@ -1,11 +1,4 @@
 {
-  "target": {
-    "type": "confluent",
-    "servers": "pkc-lzvrd.us-west4.gcp.confluent.cloud:9092",
-    "topic": "topic_0",
-    "username": "username goes here",
-    "password": "password goes here"
-  },
   "emitters": [
     {
       "name": "example_record_1",

@@ -1,0 +1,8 @@
+confluent-kafka==2.1.0
+Flask==2.3.2
+kafka-python==2.0.2
+numpy==1.24.3
+python-dateutil==2.8.2
+requests==2.31.0
+sortedcontainers==2.4.0
+Werkzeug==2.3.6

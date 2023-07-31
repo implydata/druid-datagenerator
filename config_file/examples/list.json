@@ -1,14 +1,23 @@
 {
-  "target": {"type": "stdout"},
   "emitters": [
     {
       "name": "example_record_1",
       "dimensions": [
         {
-          "type": "object",
-          "name": "Obj1",
+          "type": "list",
+          "name": "List1",
+          "length_distribution":{
+            "type": "uniform",
+            "min": 1,
+            "max": 3
+          },
+          "selection_distribution":{
+            "type": "uniform",
+            "min": 0,
+            "max": 5
+          },
           "cardinality": 0,
-          "dimensions": [
+          "elements": [
             {
               "type": "enum",
               "name": "enum_dim",
@@ -82,15 +91,25 @@
           ]
         },
         {
-          "type": "object",
-          "name": "Obj2",
+          "type": "list",
+          "name": "List2",
+          "length_distribution":{
+            "type": "uniform",
+            "min": 1,
+            "max": 3
+          },
+          "selection_distribution":{
+            "type": "uniform",
+            "min": 0,
+            "max": 5
+          },
           "cardinality": 3,
           "cardinality_distribution": {
             "type": "uniform",
             "min": 0,
             "max": 2
           },
-          "dimensions": [
+          "elements": [
             {
               "type": "enum",
               "name": "enum_dim",

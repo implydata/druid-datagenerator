@@ -1,5 +1,4 @@
 {
-  "target": {"type": "stdout"},
   "emitters": [
     {
       "name": "example_record_1",
