@@ -20,33 +20,42 @@ Output:
 ["clickstream/clickstream.json", "clickstream/users_init.json", "clickstream/users_changes.json", "examples/langmap.json", "examples/missing.json", "examples/simple.json", "examples/list.json", "examples/deepthought.json", "examples/variable.json", "examples/nulls.json", "examples/counter.json", "examples/object.json", "examples/types.json"]
 ```
 
-### start
+### /start
 Initiates a data generation process with the specified configuration. The configuration can be selected from the available configurations by using the `config_file` property in the request. Alternatively, a custom configuration can be provided in the `config` property.
 The payload for this request has the following format:
 ```json
 {
-    "target": <target specification>,
-    "config": <config JSON>,
-    "config_file": <name of the config file on the server>,
-    "total_events": <total number of messages to generate>,
-    "concurrency": <max number of concurrent state machines>,
-    "time": <duration for data generation>,
-    "time_type": [ "SIM" | "REAL" | <start timestamp>]
+    "name": "<job name>",
+    "target": "<target specification>",
+    "config": "<config JSON>",
+    "config_file": "<name of the config file on the server>",
+    "total_events": "<total number of messages to generate>",
+    "concurrency": "<max number of concurrent state machines>",
+    "time": "<duration for data generation>",
+    "time_type": [ "SIM" | "REAL" | "<start timestamp>"]
 }
 ```
 Where:
-- [_"target"_](#target_object): (required) describes where to publish generated data.
-- [_"config"_](): (_config_ or _config_file_ required) custom configuration object.
-- [_"config_file"_](#list): (_config_ or _config_file_ required) [predefined configuration](###GET_/list) is used.
-- _"total_events"_: (optional) total number of events to generate
-- _"time"_: (optional) total duration to run specified in seconds, minutes or hours (ex. "15s", "10m", "5h")
-- _"concurrency"_: (optional) max number of state machines to create
-- _"time_type"_: (optional) "SIM" - simulate time, "REAL" - run in real-time
+- _"name"_ - (required) unique name for the job
+- _"target"_ - (required) describes where to publish generated data.
+- _"config"_ - (_config_ or _config_file_ required) custom configuration object.
+- _"config_file"_ - (_config_ or _config_file_ required) [predefined configuration](###GET_/list) is used.
+- _"total_events"_ - (optional) total number of events to generate
+- _"time"_ - (optional) total duration to run specified in seconds, minutes or hours (ex. "15s", "10m", "5h")
+- _"concurrency"_ - (optional) max number of state machines to create
+- _"time_type"_ - (optional) "SIM" - simulate time, "REAL" - run in real-time
   - can be set to a timestamp ("YYYY-MM-DD HH:MM:SS") to use a simulated start time  
+
+When "time_type" is either "SIM" or a timestamp literal value, the job will simulate the passage of time for a with a simulated duration of "time" and complete when the simulated duration is reached.
+
+If "time_type" is "REAL" then and "time" is specified, then the job will complete after the specified duration in real time.
+
+If "total_events" is specified, the job will complete once it generates the specified number of messages.
 
 Example payload:
 ```json
 {
+    "name": "generate_clicks",
     "target":{
       "type": "kafka",
       "endpoint": "kafka:9092",
@@ -59,23 +68,62 @@ Example payload:
 }
 ```
 
-### stop
-This request will stop all active data generators running on the server.
+### /jobs
+Displays a list of currently running jobs, including their current status.
+```json
+curl -X GET "http://localhost:9999/jobs"
+
+[ { "name": "gen_clickstream1", "config_file": "clickstream/clickstream.json", 
+    "target": {"type": "file", "path": "/files/clicks1.json"}, 
+    "active_sessions": 100, "total_records": 2405, "start_time": "2023-08-02 22:11:39", 
+    "run_time": 462.520603, 
+    "status": "RUNNING"}, 
+  { "name": "gen_clickstream2", "config_file": "clickstream/clickstream.json", 
+    "target": {"type": "file", "path": "/files/clicks2.json"}, 
+    "active_sessions": 100, "total_records": 2383, "start_time": "2023-08-02 22:11:40", 
+    "run_time": 461.291613, 
+    "status": "RUNNING"}, 
+  { "name": "gen_clickstream3", "config_file": "clickstream/clickstream.json", 
+    "target": {"type": "file", "path": "/files/clicks3.json"}, 
+    "active_sessions": 100, "total_records": 2428, "start_time": "2023-08-02 22:11:40", 
+    "run_time": 461.533282, 
+    "status": "RUNNING"}]
+```
+
+### /stop/\<job name>
+This request will stop the job named <job_name> if it is running. 
+
+It also removes the job from the list of known jobs as displayed in the /jobs API.
+
 Example:
-```
-curl -X POST "http://localhost:9999/stop
+```json
+curl -X POST "http://localhost:9999/stop/gen_clickstream1"
 
-Data generation stopped
+{"message":"Job [gen_clickstream1] stopped successfully."}
 ```
 
-### status
+### /status/\<job_name>
+Displays the definition and current status of the job named <job_name>.
 Example:
-```
-curl "http://localhost:9999/status"
+```json
+curl "http://localhost:9999/status/gen_clickstream1"
 
-{"config_file": "clickstream/clickstream.json", "target": {"type": "file", "path": "/tmp/clickstream_data.json"}, "active_sessions": 100, "total_records": 925, "run_time": 170.346579}
-{"config_file": "clickstream/user_init.json", "target": {"type": "file", "path": "/tmp/user_data.json"}, "active_sessions": 100, "total_records": 743, "run_time": 128.065846}%
+{ "name": "gen_clickstream1", "config_file": "clickstream/clickstream.json", 
+    "target": {"type": "file", "path": "/files/clicks1.json"}, 
+    "active_sessions": 100, "total_records": 2405, "start_time": "2023-08-02 22:11:39", 
+    "run_time": 462.520603, 
+    "status": "RUNNING"}
 ```
+
+### /files
+Displays the definition and current status of the job named <job_name>.
+Example:
+```json
+curl "http://localhost:9999/files"
+
+
+```
+
 
 ## Command Line Execution 
 
