@@ -32,7 +32,7 @@ The payload for this request has the following format:
     "total_events": "<total number of messages to generate>",
     "concurrency": "<max number of concurrent state machines>",
     "time": "<duration for data generation>",
-    "time_type": [ "SIM" | "REAL" | "<start timestamp>"]
+    "time_type": "SIM | REAL | <start timestamp>"
 }
 ```
 Where:
@@ -70,9 +70,10 @@ Example payload:
 
 ### /jobs
 Displays a list of currently running jobs, including their current status.
-```json
+```
 curl -X GET "http://localhost:9999/jobs"
-
+```
+```json
 [ { "name": "gen_clickstream1", "config_file": "clickstream/clickstream.json", 
     "target": {"type": "file", "path": "/files/clicks1.json"}, 
     "active_sessions": 100, "total_records": 2405, "start_time": "2023-08-02 22:11:39", 
@@ -96,18 +97,21 @@ This request will stop the job named <job_name> if it is running.
 It also removes the job from the list of known jobs as displayed in the /jobs API.
 
 Example:
-```json
+```
 curl -X POST "http://localhost:9999/stop/gen_clickstream1"
-
+```
+```json
 {"message":"Job [gen_clickstream1] stopped successfully."}
 ```
 
 ### /status/\<job_name>
 Displays the definition and current status of the job named <job_name>.
 Example:
-```json
+```
 curl "http://localhost:9999/status/gen_clickstream1"
+```
 
+```json
 { "name": "gen_clickstream1", "config_file": "clickstream/clickstream.json", 
     "target": {"type": "file", "path": "/files/clicks1.json"}, 
     "active_sessions": 100, "total_records": 2405, "start_time": "2023-08-02 22:11:39", 
@@ -118,12 +122,12 @@ curl "http://localhost:9999/status/gen_clickstream1"
 ### /files
 Displays the definition and current status of the job named <job_name>.
 Example:
-```json
-curl "http://localhost:9999/files"
-
-
 ```
-
+curl "http://localhost:9999/files"
+```
+```json
+["sample_data.json", "clicks.json", "clicks1.json", "clicks2.json", "clickstream_data.json", "clicks3.json"]
+```
 
 ## Command Line Execution 
 
