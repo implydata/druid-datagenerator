@@ -129,6 +129,21 @@ curl "http://localhost:9999/files"
 ["sample_data.json", "clicks.json", "clicks1.json", "clicks2.json", "clickstream_data.json", "clicks3.json"]
 ```
 
+### /file/<file_name>
+Displays the definition and current status of the job named <job_name>.
+Example:
+```
+curl "http://localhost:9999/file/clicks.json"  | tail -5
+```
+```json
+{"time":"2023-08-02T22:27:48.418","user_id":"2142","event_type":"view_cart","client_ip":"127.250.32.144","client_device":"desktop","client_lang":"Arabic","client_country":"Indonesia","referrer":"bing.com/search","keyword":"gifts","product":"Electric shock pen"}
+{"time":"2023-08-02T22:27:48.431","user_id":"2586","event_type":"view_product","client_ip":"127.174.137.91","client_device":"mobile","client_lang":"Mandarin","client_country":"Nigeria","referrer":"amazon.com","keyword":"t-shirts","product":"Toilet golf putting green"}
+{"time":"2023-08-02T22:27:48.710","user_id":"3850","event_type":"search","client_ip":"127.167.21.193","client_device":"mobile","client_lang":"French","client_country":"Nigeria","referrer":"google.com/search","keyword":"Geeky gifts","product":"Novelty toilet paper"}
+{"time":"2023-08-02T22:27:48.899","user_id":"3846","event_type":"view_product","client_ip":"127.74.91.52","client_device":"laptop","client_lang":"English","client_country":"China","referrer":"google.com/search","keyword":"Geeky gifts","product":"Rubber chicken"}
+{"time":"2023-08-02T22:27:48.905","user_id":"1966","event_type":"search","client_ip":"127.167.136.121","client_device":"mobile","client_lang":"English","client_country":"United States","referrer":"bing.com/search","keyword":"Gag gifts","product":"Bubble wrap suit"}
+```
+
+
 ## Command Line Execution 
 
 The Druid Data Driver is a python script that simulates a workload that generates data for Druid ingestion.
