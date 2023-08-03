@@ -81,6 +81,9 @@ class Clock:
         time_delta = self.now() - self.start_time
         return time_delta.total_seconds()
 
+    def get_start_time(self):
+        return self.start_time
+
     def activate_thread(self):
         if self.time_type == 'SIM':
             self.lock.acquire()
@@ -336,16 +339,16 @@ def parse_timestamp_distribution(desc):
 # idividual value.
 #
 
-class ElementNow: # The __time dimension
+class ElementNow: # The time dimension
     def __init__(self, global_clock):
         self.global_clock = global_clock
     def __str__(self):
         return 'ElementNow()'
     def get_json_field_string(self):
         now = self.global_clock.now().isoformat()[:-3]
-        return '"__time":"'+now+'"'
+        return '"time":"'+now+'"'
 
-class ElementCounter: # The __time dimension
+class ElementCounter: # The time dimension
     def __init__(self, desc):
         self.name = desc['name']
         if 'percent_nulls' in desc.keys():
@@ -869,9 +872,9 @@ class State:
         return random.choices(self.transistion_states, weights=self.transistion_probabilities, k=1)[0]
 
 class SimEnd:
-    lock = threading.Lock()
-    thread_end_event = threading.Event()
     def __init__(self, total_recs, runtime, global_clock):
+        self.lock = threading.Lock()
+        self.thread_end_event = threading.Event()
         self.total_recs = total_recs
         self.record_count = 0
         self.global_clock = global_clock
@@ -928,6 +931,9 @@ class SimEnd:
     def get_duration(self):
         return self.global_clock.get_duration()
 
+    def get_start_time(self):
+        return self.global_clock.get_start_time()
+
     def get_record_count(self):
         return self.record_count;
 
@@ -940,7 +946,8 @@ class SimEnd:
 # Run the driver
 #
 class DataDriver:
-    def __init__(self, config, target, runtime, total_recs, time_type, start_time, max_entities):
+    def __init__(self, name, config, target, runtime, total_recs, time_type, start_time, max_entities):
+        self.name = name
         self.config = config
         self.target = target
         self.runtime = runtime
@@ -1144,11 +1151,15 @@ class DataDriver:
         self.sim_control.terminate()
 
     def report(self):
-        return {   'config_file': self.config['config_file'],
-                   'target': self.target,
+        return {  'name': self.name,
+                  'config_file': self.config['config_file'],
+                  'target': self.target,
                   'active_sessions': self.sim_control.get_entity_count(),
                   'total_records': self.sim_control.get_record_count(),
-                  'run_time': self.sim_control.get_duration()}
+                  'start_time': self.sim_control.get_start_time().strftime('%Y-%m-%d %H:%M:%S'),
+                  'run_time': self.sim_control.get_duration(),
+                  'status' : 'COMPLETE' if self.sim_control.is_done() else 'RUNNING'
+                }
 
 
 def main():
@@ -1202,7 +1213,7 @@ def main():
     elif 'target' in config.keys():
         target = config['target']
 
-    driver = DataDriver(config, target, runtime, total_recs, time_type, start_time, max_entities)
+    driver = DataDriver('cli', config, target, runtime, total_recs, time_type, start_time, max_entities)
     driver.simulate()
 
 
