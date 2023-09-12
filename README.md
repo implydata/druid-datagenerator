@@ -120,7 +120,7 @@ curl "http://localhost:9999/status/gen_clickstream1"
 ```
 
 ### /files
-Displays the definition and current status of the job named <job_name>.
+Displays the list of files that have been created and are available for batch retrieval.
 Example:
 ```
 curl "http://localhost:9999/files"
@@ -130,7 +130,7 @@ curl "http://localhost:9999/files"
 ```
 
 ### /file/<file_name>
-Displays the definition and current status of the job named <job_name>.
+Downloads the file named <file_name>.
 Example:
 ```
 curl "http://localhost:9999/file/clicks.json"  | tail -5
