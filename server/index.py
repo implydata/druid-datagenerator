@@ -55,14 +55,14 @@ class DataGeneratorServer (threading.Thread):
 
         if 'time_type' in job_definition.keys():
             self.time_type = job_definition['time_type']
-            if self.time_type == 'SIM':
+            if self.time_type in 'SIM':
                 self.start_time = datetime.now()
             elif self.time_type == 'REAL':
                 self.start_time = datetime.now()
             else:
                 self.start_time = dateutil.parser.isoparse(self.time_type)
                 self.start_time = self.start_time + timedelta(seconds=0.001)
-                self.time_type = 'SIM'
+                self.time_type = 'SIM_TO_REAL'
         else:
             self.time_type = None
             self.start_time = datetime.now()
@@ -70,9 +70,10 @@ class DataGeneratorServer (threading.Thread):
         if (self.runtime is not None) and (self.total_recs is not None):
             raise ValueError("Use either 'time' or 'total_events', but not both.")
 
+        self.driver = DruidDataDriver.DataDriver(self.name, self.config, self.target, self.runtime, self.total_recs, self.time_type, self.start_time, self.max_entities)
+
 
     def run(self):
-        self.driver = DruidDataDriver.DataDriver(self.name, self.config, self.target, self.runtime, self.total_recs, self.time_type, self.start_time, self.max_entities)
         self.driver.simulate( )
 
     def report(self):
@@ -136,6 +137,7 @@ def list_generated_files():
 
 @app.route("/start", methods=['POST'])
 def start_generator():
+    import traceback
     try:
         job = request.get_json()
     except Exception as ex:
@@ -157,17 +159,19 @@ def start_generator():
 
         # only use the name of the file, strip any path, the files are generated and read from /files only
         if job['target']['type']=='file':
+            if 'path' not in job['target'].keys():
+                return '{"message":"A target type `file` requires a `path` property with the name of the output file."}', 400
             filename = os.path.join('/files', os.path.basename(job['target']['path']))
             job['target']['path']=filename
             # since we are rebuilding the file remove it if it exists:
             delete_file(filename)
         server = DataGeneratorServer(job)
-        server.start()
         server_list.append(server)
+        server.start()
         job_result = json.dumps(job, indent=2)
         return '{"message":"Starting generator for request.", "request":'+job_result+'}', 200
     except Exception as ex:
-        return '{"message":"ERROR starting data generator job","exception":"'+f'{ex}'+'"}', 400
+        return '{"message":"ERROR starting data generator job","exception":"'+f'{ex}\nStack trace:{traceback.format_exc()}' +'" }', 400
 
 @app.route("/jobs", methods=['GET'])
 def get_jobs():

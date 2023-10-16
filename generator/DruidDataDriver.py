@@ -85,19 +85,19 @@ class Clock:
         return self.start_time
 
     def activate_thread(self):
-        if self.time_type == 'SIM':
+        if self.time_type != 'REAL':
             self.lock.acquire()
             self.active_threads += 1
             self.lock.release()
 
     def deactivate_thread(self):
-        if self.time_type == 'SIM':
+        if self.time_type != 'REAL':
             self.lock.acquire()
             self.active_threads -= 1
             self.lock.release()
 
     def end_thread(self):
-        if self.time_type == 'SIM':
+        if self.time_type != 'REAL':
             self.lock.acquire()
             self.active_threads -= 1
             if len(self.future_events) > 0:
@@ -105,7 +105,7 @@ class Clock:
             self.lock.release()
 
     def release_all(self):
-        if self.time_type == 'SIM':
+        if self.time_type != 'REAL':
             self.lock.acquire()
             #print('release_all - active_threads = '+str(self.active_threads))
             for e in self.future_events:
@@ -135,14 +135,14 @@ class Clock:
         event.resume()
 
     def now(self) -> datetime:
-        if self.time_type == 'SIM':
+        if self.time_type != 'REAL':
             t = self.sim_time
         else:
             t = datetime.now()
         return t
 
     def sleep(self, delta):
-        if self.time_type == 'SIM': # Simulated time
+        if self.time_type != 'REAL': # Simulated time
             self.lock.acquire()
             #print(threading.current_thread().name+" begin sleep "+str(self.sim_time)+" + "+str(delta))
             this_event = self.add_event(self.sim_time + timedelta(seconds=delta))
@@ -159,9 +159,11 @@ class Clock:
                 self.pause(this_event)
                 #print(threading.current_thread().name+" end pause else")
             self.sim_time = this_event.get_time()
-            #print(threading.current_thread().name+" end sleep "+str(self.sim_time))
             self.lock.release()
-
+            # if new time is past current time and the simulation is SIM_REAL, switch to REAL and continue in real-time
+            if self.time_type == 'SIM_TO_REAL' and self.sim_time > datetime.now():
+                self.time_type = 'REAL'
+                self.sim_time = datetime.now()
         else: # Real time
             time.sleep(delta)
 
@@ -593,8 +595,8 @@ class ElementTimestamp(ElementBase):
             self.cardinality_distribution = None
         else:
             if 'cardinality_distribution' not in desc.keys():
-                print('Element '+self.name+' specifies a cardinality without a cardinality distribution')
-                exit()
+                msg = 'Element '+self.name+' specifies a cardinality without a cardinality distribution'
+                raise Exception(msg)
             self.cardinality = []
             self.cardinality_distribution = parse_distribution(desc['cardinality_distribution'])
             for i in range(cardinality):
@@ -677,8 +679,8 @@ class ElementObject():
         else:
             self.cardinality = []
             if 'cardinality_distribution' not in desc.keys():
-                print('Element '+self.name+' specifies a cardinality without a cardinality distribution')
-                exit()
+                msg = 'Element '+self.name+' specifies a cardinality without a cardinality distribution'
+                raise Exception(msg)
             self.cardinality_distribution = parse_distribution(desc['cardinality_distribution'])
             for i in range(cardinality):
                 Value = None
@@ -742,8 +744,8 @@ class ElementList():
         else:
             self.cardinality = []
             if 'cardinality_distribution' not in desc.keys():
-                print('Element '+self.name+' specifies a cardinality without a cardinality distribution')
-                exit()
+                msg = 'Element '+self.name+' specifies a cardinality without a cardinality distribution'
+                raise Exception(msg)
             self.cardinality_distribution = parse_distribution(desc['cardinality_distribution'])
             for i in range(cardinality):
                 Value = None
@@ -818,8 +820,8 @@ def parse_element(desc):
     elif desc['type'].lower() == 'list':
         el = ElementList(desc)
     else:
-        print('Error: Unknown dimension type "'+desc['type']+'"')
-        exit()
+        msg = 'Error: Unknown dimension type "'+desc['type']+'"'
+        raise Exception(msg)
     return el
 
 
@@ -889,8 +891,8 @@ class SimEnd:
             elif runtime[-1].lower() == 'h':
                 self.t = int(runtime[:-1]) * 60 * 60
             else:
-                print('Error: Unknown runtime value"'+runtime+'"')
-                exit()
+                msg = 'Error: Unknown runtime value"'+runtime+'"'
+                raise Exception(msg)
 
     def get_entity_count(self):
         return self.entity_count
@@ -913,7 +915,8 @@ class SimEnd:
             self.thread_end_event.set()
 
     def is_done(self):
-        return ((self.total_recs is not None) and (self.record_count >= self.total_recs)) or ((self.t is not None) and self.thread_end_event.is_set())
+        return ((self.total_recs is not None) and (self.record_count >= self.total_recs)) \
+                or ((self.t is not None) and ((self.get_duration() > self.t) or self.thread_end_event.is_set()))
 
     def wait_for_end(self):
         if self.t is not None:
@@ -938,7 +941,8 @@ class SimEnd:
         return self.record_count;
 
     def terminate(self):
-        self.record_count = self.total_recs
+        if self.total_recs is not None:
+            self.record_count = self.total_recs
         self.thread_end_event.set()
 
 
@@ -955,7 +959,7 @@ class DataDriver:
         self.time_type = time_type
         self.start_time = start_time
         self.max_entities = max_entities
-
+        self.status_msg = 'Creating...'
 
 
         #
@@ -975,20 +979,20 @@ class DataDriver:
         elif target['type'].lower() == 'file':
             path = target['path']
             if path is None:
-                print('Error: File target requires a path item')
-                exit()
+                msg = 'Error: File target requires a path item'
+                raise Exception(msg)
             self.target_printer = PrintFile(path)
         elif target['type'].lower() == 'kafka':
             if 'endpoint' in target.keys():
                 endpoint = target['endpoint']
             else:
-                print('Error: Kafka target requires an endpoint item')
-                exit()
+                msg = 'Error: Kafka target requires an endpoint item'
+                raise Exception(msg)
             if 'topic' in target.keys():
                 topic = target['topic']
             else:
-                print('Error: Kafka target requires a topic item')
-                exit()
+                msg = 'Error: Kafka target requires a topic item'
+                raise Exception(msg)
             if 'security_protocol' in target.keys():
                 security_protocol = target['security_protocol']
             else:
@@ -1006,74 +1010,103 @@ class DataDriver:
             if 'servers' in target.keys():
                 servers = target['servers']
             else:
-                print('Error: Conlfuent target requires a servers item')
-                exit()
+                msg = 'Error: Conlfuent target requires a servers item'
+                raise Exception(msg)
             if 'topic' in target.keys():
                 topic = target['topic']
             else:
-                print('Error: Confluent target requires a topic item')
-                exit()
+                msg = 'Error: Confluent target requires a topic item'
+                raise Exception(msg)
             if 'username' in target.keys():
                 username = target['username']
             else:
-                print('Error: Confluent target requires a username')
-                exit()
+                msg = 'Error: Confluent target requires a username'
+                raise Exception(msg)
             if 'password' in target.keys():
                 password = target['password']
             else:
-                print('Error: Confluent target requires a password')
-                exit()
+                msg = 'Error: Confluent target requires a password'
+                raise Exception(msg)
             if 'topic_key' in target.keys():
                 topic_key = target['topic_key']
             else:
                 topic_key = []
             self.target_printer = PrintConfluent(servers, topic, username, password, topic_key)
         else:
-            print('Error: Unknown target type "'+target['type']+'"')
-            exit()
-
-        #
-        # Set up the interarrival rate
-        #
-
-        rate = self.config['interarrival']
-        self.rate_delay = parse_distribution(rate)
-
-        #sys.stderr.write('rate_delay='+str(rate_delay)+'\n')
+            msg = 'Error: Unknown target type "'+target['type']+'"'
+            raise Exception(msg)
 
 
-        #
-        # Set up emitters list
-        #
+        # A different source of data generation is a digital twin mode
+        # A source file is used that already contains a sequence of events for a given time period
+        # The source file is expected to be sorted on time
+        # time field mapping is needed and uses a json path to specify it with either 'millis' or ISO time format specified
+        # This generator will
+        # - read the first line in the file to find the starting timestamp and save that
+        # - it will then emit events with the generator time such that the events have the same cadence as the original file
+        if 'type' in config.keys():
+            if config['type']=='replay':
+                self.type=config['type']
+                if 'source_file' in config.keys():
+                    self.replay_file = config['source_file']
+                else:
+                    msg='Error: "type" = `replay` requires a "source_file".'
+                    raise Exception(msg)
+                if 'source_format' in config.keys():
+                    self.source_format = config['source_format']
+                else:
+                    self.source_format = 'csv' # default to csv as it is the only supported format for now
 
-        self.emitters = {}
-        for emitter in self.config['emitters']:
-            name = emitter['name']
-            dimensions = get_dimensions(emitter['dimensions'], self.global_clock)
-            self.emitters[name] = dimensions
-
-
-        #
-        # Set up the state machine
-        #
-
-        state_desc = self.config['states']
-        self.initial_state = None
-        self.states = {}
-        for state in state_desc:
-            name = state['name']
-            emitter_name = state['emitter']
-            if 'variables' not in state.keys():
-                variables = []
+                if 'time_field' in config.keys():
+                    self.time_field = config['time_field']
+                else:
+                    msg = 'Error: "type" = `replay` requires a the specification of a "time_field".'
+                    raise Exception(msg)
+                if 'time_format' in config.keys():
+                    self.time_format = config['time_format']
+                else:
+                    print('Info: time_format was not specified, using default "%Y-%m-%d %H:%M:%S" which is for timestamps in the form "YYYY-MM-DD hh:mm:ss". See https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes for accepted format values.')
+                    self.time_format = '%Y-%m-%d %H:%M:%S'
             else:
-                variables = get_variables(state['variables'])
-            dimensions = self.emitters[emitter_name]
-            delay = parse_distribution(state['delay'])
-            transitions = parse_transitions(state['transitions'])
-            this_state = State(name, dimensions, delay, transitions, variables)
-            self.states[name] = this_state
-            if self.initial_state == None:
-                self.initial_state = this_state
+                msg = f"Error: Unknown `type` = {config['type']}."
+                raise Exception(msg)
+        else:
+            #
+            # Set up the interarrival rate
+            #
+            self.type='generator'
+            rate = self.config['interarrival']
+            self.rate_delay = parse_distribution(rate)
+
+            #
+            # Set up emitters list
+            #
+            self.emitters = {}
+            for emitter in self.config['emitters']:
+                name = emitter['name']
+                dimensions = get_dimensions(emitter['dimensions'], self.global_clock)
+                self.emitters[name] = dimensions
+
+            #
+            # Set up the state machine
+            #
+            state_desc = self.config['states']
+            self.initial_state = None
+            self.states = {}
+            for state in state_desc:
+                name = state['name']
+                emitter_name = state['emitter']
+                if 'variables' not in state.keys():
+                    variables = []
+                else:
+                    variables = get_variables(state['variables'])
+                dimensions = self.emitters[emitter_name]
+                delay = parse_distribution(state['delay'])
+                transitions = parse_transitions(state['transitions'])
+                this_state = State(name, dimensions, delay, transitions, variables)
+                self.states[name] = this_state
+                if self.initial_state == None:
+                    self.initial_state = this_state
 
 
     def create_record(self, dimensions, variables):
@@ -1118,10 +1151,8 @@ class DataDriver:
         self.sim_control.remove_entity()
 
     def spawning_thread(self):
-        #print('Thread '+threading.current_thread().name+' starting...')
         self.global_clock.activate_thread()
         # Spawn the workers in a separate thread so we can stop the whole thing in the middle of spawning if necessary
-
         while not self.sim_control.is_done():
             if (self.sim_control.get_entity_count() < self.max_entities):
                 thread_name = 'W'+str(self.sim_control.get_entity_count())
@@ -1129,23 +1160,80 @@ class DataDriver:
                 t = threading.Thread(target=self.worker_thread, name=thread_name, daemon=True)
                 t.start()
             self.global_clock.sleep(float(self.rate_delay.get_sample()))
+        # shut off clock simulator
         self.global_clock.end_thread()
-        #print('Thread '+threading.current_thread().name+' done!')
 
+    def parse_time_from_record(self, json_obj, time_field, time_format) -> datetime:
+        if time_format == 'millis':
+            return datetime.fromtimestamp(float(json_obj[time_field])/1000.0)
+        elif time_format == 'seconds' or time_format == 'epoch' or time_format == 'posix':
+            return datetime.fromtimestamp(float(json_obj[time_field]))
+        elif time_format == 'nanos':
+            return datetime.fromtimestamp(float(json_obj[time_field])/1000000.0)
+        else:
+            return datetime.strptime(json_obj[time_field], time_format)
+
+    def get_new_time_for_record(self, time_format):
+        if time_format == 'millis':
+            return self.global_clock.now().timestamp()*1000.0
+        elif time_format == 'seconds' or time_format == 'epoch' or time_format == 'posix':
+            return self.global_clock.now().timestamp()
+        elif time_format == 'nanos':
+            return self.global_clock.now().timestamp()*1000000.0
+        else:
+            return self.global_clock.now().strftime(time_format)
+
+    def replay_thread(self):
+        # process replay file, generate events based on global clock
+        # read the source file
+        import json
+        import csv
+
+        self.global_clock.activate_thread()
+
+        data = []
+        self.status_msg = f"Reading data from file {self.replay_file}..."
+        with open(self.replay_file, 'r') as csvfile:
+            for line in csv.DictReader(csvfile):
+                data.append(line)
+        total_source_recs = len(data)
+        cycle = 0
+        self.status_msg = f"Read {total_source_recs} rows from file... sim control is done = {self.sim_control.is_done()}"
+        sim_start_time = self.global_clock.now()
+        while not self.sim_control.is_done():
+            cycle += 1
+            self.status_msg =  f"Generating data, cycle:{cycle} with max of {total_source_recs} messages per cycle."
+            i = 0 # start each cycle through from the beginning of the replay event sequence
+            while i < total_source_recs:
+                current_source_time = self.parse_time_from_record( data[i], self.time_field, self.time_format)
+                self.status_msg =  f"Time elapsed in simulation:{(self.global_clock.now() - sim_start_time)}."
+                json_obj = data[i]
+                # reset time on the output object to simulated time
+                json_obj[self.time_field]=self.get_new_time_for_record(self.time_format)
+                record = json.dumps(json_obj)
+                self.target_printer.print(record)
+                self.sim_control.inc_rec_count()
+                i += 1 # move to next event in the replay set
+                if i < total_source_recs:
+                    # advance time according to the elapsed time between events in the replay file
+                    next_source_time = self.parse_time_from_record( data[i], self.time_field, self.time_format)
+                    self.global_clock.sleep(float((next_source_time - current_source_time).total_seconds()))
+                if self.sim_control.is_done():
+                    break
+        self.global_clock.end_thread()
 
     def simulate(self):
-
-
-        #sys.stderr.write('states='+str(['('+str(key)+':'+str(states[key])+')' for key in states])+'\n')
-
-        #
-        # Finally, start the simulation
-        #
-
-        #thrd = threading.Thread(target=self.spawning_thread, args=(self.target_printer, self.rate_delay, self.states, self.initial_state, self.sim_end, self.global_clock, ), name='Spawning', daemon=True)
-        thrd = threading.Thread(target=self.spawning_thread, args=(), name='Spawning', daemon=True)
-        thrd.start()
-        self.sim_control.wait_for_end()
+        self.status_msg=f'Starting {self.type} job.'
+        if self.type == 'replay':
+            # run a single replay thread, no data generation needed except for new timestamps
+            thread_name = 'DigitalTwinSimulator'
+            self.sim_control.add_entity()
+            thrd = threading.Thread(target=self.replay_thread, name=thread_name, daemon=True)
+            thrd.start()
+        else:
+            thrd = threading.Thread(target=self.spawning_thread, args=(), name='Spawning', daemon=True)
+            thrd.start()
+        thrd.join()
 
     def terminate(self):
         self.sim_control.terminate()
@@ -1158,16 +1246,15 @@ class DataDriver:
                   'total_records': self.sim_control.get_record_count(),
                   'start_time': self.sim_control.get_start_time().strftime('%Y-%m-%d %H:%M:%S'),
                   'run_time': self.sim_control.get_duration(),
-                  'status' : 'COMPLETE' if self.sim_control.is_done() else 'RUNNING'
+                  'status' : 'COMPLETE' if self.sim_control.is_done() else 'RUNNING',
+                  'status_msg' : self.status_msg
                 }
 
 
 def main():
-
     #
     # Parse the command line
     #
-
     parser = argparse.ArgumentParser(description='Generates JSON records as a workload for Apache Druid.')
     #parser.add_argument('config_file', metavar='<config file name>', help='the workload config file name')
     parser.add_argument('-f', dest='config_file', nargs='?', help='the workload config file name')

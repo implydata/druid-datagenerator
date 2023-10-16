@@ -1,0 +1,7 @@
+{
+  "type": "replay",
+  "time_field": "ts",
+  "time_format": "epoch",
+  "source_file": "data_files/iot_sample.csv",
+  "source_format": "csv"
+}
