@@ -1173,21 +1173,15 @@ class DataDriver:
         else:
             return datetime.strptime(json_obj[time_field], time_format)
 
-    def get_new_time_for_record(self, time_format):
-        if time_format == 'millis':
-            return self.global_clock.now().timestamp()*1000.0
-        elif time_format == 'seconds' or time_format == 'epoch' or time_format == 'posix':
-            return self.global_clock.now().timestamp()
-        elif time_format == 'nanos':
-            return self.global_clock.now().timestamp()*1000000.0
-        else:
-            return self.global_clock.now().strftime(time_format)
+    def get_new_time_for_record(self):
+            return self.global_clock.now().strftime('%Y-%m-%d %H:%M:%S.%f')
 
     def replay_thread(self):
         # process replay file, generate events based on global clock
         # read the source file
         import json
         import csv
+        import copy
 
         self.global_clock.activate_thread()
 
@@ -1206,10 +1200,10 @@ class DataDriver:
             i = 0 # start each cycle through from the beginning of the replay event sequence
             while i < total_source_recs:
                 current_source_time = self.parse_time_from_record( data[i], self.time_field, self.time_format)
-                self.status_msg =  f"Time elapsed in simulation:{(self.global_clock.now() - sim_start_time)}."
-                json_obj = data[i]
+                json_obj = copy.deepcopy(data[i])
                 # reset time on the output object to simulated time
-                json_obj[self.time_field]=self.get_new_time_for_record(self.time_format)
+                json_obj[self.time_field]=self.get_new_time_for_record()
+                self.status_msg =  f"Replaying: Cycle:{cycle} msg:{i} - Sim clock:{json_obj[self.time_field]}."
                 record = json.dumps(json_obj)
                 self.target_printer.print(record)
                 self.sim_control.inc_rec_count()
