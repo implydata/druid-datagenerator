@@ -1139,6 +1139,7 @@ class DataDriver:
                 break
             delta = float(current_state.delay.get_sample())
             self.global_clock.sleep(delta)
+            self.status_msg=f"Running, Sim Clock: {self.global_clock.now()}"
             if self.sim_control.is_done():
                 break
             next_state_name = current_state.get_next_state_name()
