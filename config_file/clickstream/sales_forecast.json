@@ -1,0 +1,140 @@
+{
+  "emitters": [
+    {
+      "name": "forecast",
+      "dimensions": [
+        {"type": "variable", "name": "client_country", "variable": "client_country"},
+        {"type": "variable", "name": "product", "variable": "product"},
+        {"type": "variable", "name": "forecast_quantity", "variable": "forecast_quantity" }
+      ]
+    }
+  ],
+  "interarrival": {"type": "exponential", "mean": 0.01},
+  "states": [
+    {
+      "name": "issue_forecast",
+      "emitter": "forecast",
+      "variables": [
+        {
+          "type": "enum",
+          "name": "client_country",
+          "values": [
+            "Vietnam",
+            "Philippines",
+            "Mexico",
+            "Brazil",
+            "Pakistan",
+            "United States",
+            "China",
+            "India",
+            "Indonesia",
+            "Nigeria",
+            "Russia",
+            "Japan",
+            "Egypt"
+          ],
+          "cardinality_distribution": {
+            "type": "uniform",
+            "min": 0,
+            "max": 12
+          }
+        },
+        {
+          "type": "enum",
+          "name": "product",
+          "values": [
+            "Fidget spinner",
+            "Rubber chicken",
+            "Slinky",
+            "Magic 8-ball",
+            "Pet rock",
+            "Mood ring",
+            "Fake mustache",
+            "Whoopee cushion",
+            "Inflatable pool float",
+            "Gag glasses",
+            "Silly putty",
+            "Squishy toys",
+            "Giant inflatable unicorn",
+            "Hand buzzer",
+            "Chattering teeth",
+            "Novelty socks",
+            "Drinking bird toy",
+            "Potty putter",
+            "Electric shock pen",
+            "Bubble wrap suit",
+            "Light-up flashing gloves",
+            "Finger hands",
+            "Bacon-scented air freshener",
+            "Shave and play Barbie",
+            "Novelty toilet paper",
+            "Cow costume",
+            "Remote control fart machine",
+            "Banana slicer",
+            "Watermelon ball",
+            "Handerpants",
+            "Stress balls",
+            "Dinosaur-shaped taco holder",
+            "Giant gummy bear",
+            "Pineapple corer",
+            "Cactus-shaped candles",
+            "Wine bottle glass",
+            "Cat butt tissue holder",
+            "Mermaid tail blanket",
+            "Pizza scissors",
+            "Toilet golf putting green"
+          ],
+          "cardinality_distribution": {
+            "type": "uniform",
+            "min": 0,
+            "max": 39
+          }
+        },
+        {
+          "type": "int",
+          "name": "forecast_quantity",
+          "distribution": {
+            "type": "uniform",
+            "min": 0,
+            "max": 40
+          },
+          "cardinality": 0,
+          "cardinality_distribution": {
+            "type": "uniform",
+            "min": 0,
+            "max": 40
+          }
+        }
+      ],
+      "delay": {"type": "constant", "value": 86400},
+      "transitions": [
+        {"next": "continue_forecast", "probability": 1}
+      ]
+    },
+    {
+      "name": "continue_forecast",
+      "emitter": "forecast",
+      "variables": [
+       {
+          "type": "int",
+          "name": "forecast_quantity",
+          "distribution": {
+            "type": "uniform",
+            "min": 0,
+            "max": 40
+          },
+          "cardinality": 0,
+          "cardinality_distribution": {
+            "type": "uniform",
+            "min": 0,
+            "max": 40
+          }
+        }
+      ],
+      "delay": {"type": "constant", "value": 86400},
+      "transitions": [
+        {"next": "continue_forecast", "probability": 1}
+      ]
+    }
+  ]
+}

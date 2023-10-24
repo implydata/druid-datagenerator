@@ -1,0 +1,9 @@
+{
+  "type": "replay",
+  "time_field": "ts",
+  "time_format": "epoch",
+  "source_file": "data_files/iot_sample.csv",
+  "source_format": "csv",
+  "null_injection": [ {"field": "humidity", "null_probability": 0.05 }, {"field": "temp", "null_probability": 0.01}],
+  "time_skipping": {"skip_probability": 0.01, "min_skip_duration": 5, "max_skip_duration": 300}
+}

@@ -142,6 +142,9 @@ class Clock:
         return t
 
     def sleep(self, delta):
+        # cannot travel to the past so don't move the time if delta is negative
+        if delta < 0:
+            return
         if self.time_type != 'REAL': # Simulated time
             self.lock.acquire()
             #print(threading.current_thread().name+" begin sleep "+str(self.sim_time)+" + "+str(delta))
@@ -1067,6 +1070,29 @@ class DataDriver:
                 else:
                     print('Info: time_format was not specified, using default "%Y-%m-%d %H:%M:%S" which is for timestamps in the form "YYYY-MM-DD hh:mm:ss". See https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes for accepted format values.')
                     self.time_format = '%Y-%m-%d %H:%M:%S'
+                if 'null_injection' in config.keys():
+                    self.do_null_injection = True
+                    self.null_injections = config['null_injection']
+                    msg = 'Error: "null_injection" must be an array in the form: [{"field":"field1","null_probability":0.05},{"field":"field2", "null_probability":0.01}].'
+                    if not isinstance(self.null_injections, list):
+                        raise Exception(msg)
+                    else:
+                        for injection in self.null_injections:
+                            if not isinstance(injection, dict) or 'field' not in injection.keys() or 'null_probability' not in injection.keys():
+                                raise Exception(msg)
+                else:
+                    self.do_null_injection = False
+                if 'time_skipping' in config.keys():
+                    self.do_time_skips = True
+                    self.time_skip_config = config['time_skipping']
+                    if not isinstance(self.time_skip_config, dict) \
+                        or 'skip_probability' not in self.time_skip_config.keys() \
+                        or 'min_skip_duration' not in self.time_skip_config.keys() \
+                        or 'max_skip_duration' not in self.time_skip_config.keys():
+                        msg='Error: "time_skipping" must have the form: {"skip_probability": 0.01, "min_skip_duration": 5, "max_skip_duration": 300}"'
+                        raise Exception(msg)
+                else:
+                    self.do_time_skips = False
             else:
                 msg = f"Error: Unknown `type` = {config['type']}."
                 raise Exception(msg)
@@ -1138,6 +1164,7 @@ class DataDriver:
             if self.sim_control.is_done():
                 break
             delta = float(current_state.delay.get_sample())
+            #self.status_msg=f"Thread sleeping {delta} seconds. Sim Clock: {self.global_clock.now()}"
             self.global_clock.sleep(delta)
             self.status_msg=f"Running, Sim Clock: {self.global_clock.now()}"
             if self.sim_control.is_done():
@@ -1153,6 +1180,7 @@ class DataDriver:
 
     def spawning_thread(self):
         self.global_clock.activate_thread()
+
         # Spawn the workers in a separate thread so we can stop the whole thing in the middle of spawning if necessary
         while not self.sim_control.is_done():
             if (self.sim_control.get_entity_count() < self.max_entities):
@@ -1160,7 +1188,11 @@ class DataDriver:
                 self.sim_control.add_entity()
                 t = threading.Thread(target=self.worker_thread, name=thread_name, daemon=True)
                 t.start()
-            self.global_clock.sleep(float(self.rate_delay.get_sample()))
+                # add a sleep event before spawning the next
+                self.global_clock.sleep(float(self.rate_delay.get_sample()))
+            else:
+                self.global_clock.sleep(5.0)
+
         # shut off clock simulator
         self.global_clock.end_thread()
 
@@ -1183,6 +1215,7 @@ class DataDriver:
         import json
         import csv
         import copy
+        import random
 
         self.global_clock.activate_thread()
 
@@ -1205,13 +1238,28 @@ class DataDriver:
                 # reset time on the output object to simulated time
                 json_obj[self.time_field]=self.get_new_time_for_record()
                 self.status_msg =  f"Replaying: Cycle:{cycle} msg:{i} - Sim clock:{json_obj[self.time_field]}."
+                #do null injections if configured
+                if self.do_null_injection:
+                    for nuller in self.null_injections:
+                        if random.random()<nuller['null_probability']:
+                            json_obj[nuller['field']] = None
+                # print record to defined target
                 record = json.dumps(json_obj)
                 self.target_printer.print(record)
                 self.sim_control.inc_rec_count()
                 i += 1 # move to next event in the replay set
                 if i < total_source_recs:
-                    # advance time according to the elapsed time between events in the replay file
                     next_source_time = self.parse_time_from_record( data[i], self.time_field, self.time_format)
+                    if self.do_time_skips and random.random()<self.time_skip_config['skip_probability']:
+                        # calculate skip time in seconds
+                        skip_time = random.uniform(self.time_skip_config['min_skip_duration'], self.time_skip_config['max_skip_duration'])
+                        self.status_msg =  f"Replaying: Cycle:{cycle} msg:{i} - Sim clock:{json_obj[self.time_field]}. Skipping {skip_time} seconds."
+                        # find the next event in the sequence that is after the skip time
+                        while ((next_source_time - current_source_time).total_seconds() < skip_time) and (i < total_source_recs-1):
+                            i += 1
+                            next_source_time = self.parse_time_from_record( data[i], self.time_field, self.time_format)
+                            self.status_msg =  f"Replaying: Cycle:{cycle} msg:{i} - Sim clock:{json_obj[self.time_field]}. Skipping {skip_time} seconds."
+                    # advance time according to the elapsed time between events in the replay file
                     self.global_clock.sleep(float((next_source_time - current_source_time).total_seconds()))
                 if self.sim_control.is_done():
                     break
