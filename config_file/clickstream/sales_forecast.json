@@ -96,17 +96,17 @@
           "distribution": {
             "type": "uniform",
             "min": 0,
-            "max": 40
+            "max": 5
           },
           "cardinality": 0,
           "cardinality_distribution": {
             "type": "uniform",
             "min": 0,
-            "max": 40
+            "max": 5
           }
         }
       ],
-      "delay": {"type": "constant", "value": 86400},
+      "delay": {"type": "constant", "value": 1800},
       "transitions": [
         {"next": "continue_forecast", "probability": 1}
       ]
@@ -121,17 +121,17 @@
           "distribution": {
             "type": "uniform",
             "min": 0,
-            "max": 40
+            "max": 5
           },
           "cardinality": 0,
           "cardinality_distribution": {
             "type": "uniform",
             "min": 0,
-            "max": 40
+            "max": 5
           }
         }
       ],
-      "delay": {"type": "constant", "value": 86400},
+      "delay": {"type": "constant", "value": 1800},
       "transitions": [
         {"next": "continue_forecast", "probability": 1}
       ]
