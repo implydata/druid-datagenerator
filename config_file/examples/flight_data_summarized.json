@@ -1,0 +1,84 @@
+{
+  "emitters": [
+    {
+      "name": "flight",
+      "dimensions": [
+        {
+          "type": "enum",
+          "name": "airline",
+          "values": ["AA","AS","B6","CO","DH","DL","EV","F9","FL","HA","HP","MQ","NW","OH","OO","RU","TZ","UA","US","WN"],
+          "cardinality_distribution": { "type":"uniform", "min":0, "max":19},
+          "percent_missing": 0,
+          "percent_nulls": 0
+        },
+        {
+            "type":"int",
+            "name":"flight_number",
+            "distribution": { "type":"uniform","min":1, "max":6998 },
+            "cardinality": 1000,
+            "cardinality_distribution": {"type":"uniform", "min":0, "max":999}
+        },
+        {
+          "type": "timestamp",
+          "name": "arrival_time",
+          "distribution": { "type":"uniform", "min":"2005-11-02T00:00:00.0Z", "max":"2005-11-02T23:59:59.9Z"},
+          "cardinality": 0,
+          "percent_missing": 0,
+          "percent_nulls": 0
+        },
+        {
+            "type":"string",
+            "name":"tail_number",
+            "length_distribution": { "type":"constant", "value":5},
+            "cardinality":0,
+            "chars":"NLMSOPFST0123456789"
+        },
+        {
+            "type":"enum",
+            "name":"origin",
+            "values": [ "ABE","ABI","ABQ","ABY","ACT","ACV","ACY","ADQ","AEX","AGS","AKN","ALB","AMA","ANC","APF","ATL","ATW","AUS","AVL","AVP","AZO","BDL","BET","BFL","BGM","BGR","BHM","BIL","BIS","BMI","BNA","BOI","BOS","BQK","BQN","BRO","BRW","BTM","BTR","BTV","BUF","BUR","BWI","BZN","CAE","CAK","CDC","CDV","CEC","CHA","CHO","CHS","CIC","CID","CLD","CLE","CLL","CLT","CMH","CMI","COD","COS","CPR","CRP","CRW","CSG","CVG","CWA","DAB","DAL","DAY","DBQ","DCA","DEN","DFW","DHN","DLG","DLH","DSM","DTW","EKO","ELP","ERI","EUG","EVV","EWR","EYW","FAI","FAR","FAT","FAY","FCA","FLL","FLO","FNT","FSD","FSM","FWA","GEG","GFK","GGG","GJT","GNV","GPT","GRB","GRK","GRR","GSO","GSP","GTF","GTR","HDN","HKY","HLN","HNL","HOU","HPN","HRL","HSV","HTS","HVN","IAD","IAH","ICT","IDA","ILM","IND","IPL","ISO","ISP","ITO","IYK","JAC","JAN","JAX","JFK","JNU","KOA","KTN","LAN","LAS","LAW","LAX","LBB","LCH","LEX","LFT","LGA","LGB","LIH","LIT","LNK","LRD","LSE","LWS","LYH","MAF","MBS","MCI","MCN","MCO","MDT","MDW","MEI","MEM","MFE","MFR","MGM","MHT","MIA","MKE","MLB","MLI","MLU","MOB","MOD","MOT","MQT","MRY","MSN","MSO","MSP","MSY","MTJ","MYR","OAK","OGG","OKC","OMA","OME","ONT","ORD","ORF","OTZ","OXR","PBI","PDX","PFN","PHF","PHL","PHX","PIA","PIH","PIT","PNS","PSC","PSE","PSG","PSP","PVD","PWM","RAP","RDD","RDM","RDU","RIC","RNO","ROA","ROC","RST","RSW","SAN","SAT","SAV","SBA","SBN","SBP","SCC","SCE","SDF","SEA","SFO","SGF","SGU","SHV","SIT","SJC","SJT","SJU","SLC","SMF","SMX","SNA","SPI","SPS","SRQ","STL","STT","STX","SUN","SWF","SYR","TLH","TOL","TPA","TRI","TUL","TUP","TUS","TVC","TWF","TXK","TYR","TYS","VLD","VPS","WRG","XNA","YAK","YUM"],
+            "cardinality_distribution": { "type":"uniform", "min":0, "max":267},
+            "percent_missing": 0,
+            "percent_nulls": 0
+        },
+        {
+            "type":"enum",
+            "name":"destination",
+            "values": [ "ABE","ABI","ABQ","ABY","ACT","ACV","ACY","ADQ","AEX","AGS","AKN","ALB","AMA","ANC","APF","ATL","ATW","AUS","AVL","AVP","AZO","BDL","BET","BFL","BGM","BGR","BHM","BIL","BIS","BMI","BNA","BOI","BOS","BQK","BQN","BRO","BRW","BTM","BTR","BTV","BUF","BUR","BWI","BZN","CAE","CAK","CDC","CDV","CEC","CHA","CHO","CHS","CIC","CID","CLD","CLE","CLL","CLT","CMH","CMI","COD","COS","CPR","CRP","CRW","CSG","CVG","CWA","DAB","DAL","DAY","DBQ","DCA","DEN","DFW","DHN","DLG","DLH","DSM","DTW","EKO","ELP","ERI","EUG","EVV","EWR","EYW","FAI","FAR","FAT","FAY","FCA","FLL","FLO","FNT","FSD","FSM","FWA","GEG","GFK","GGG","GJT","GNV","GPT","GRB","GRK","GRR","GSO","GSP","GTF","GTR","HDN","HKY","HLN","HNL","HOU","HPN","HRL","HSV","HTS","HVN","IAD","IAH","ICT","IDA","ILM","IND","IPL","ISO","ISP","ITO","IYK","JAC","JAN","JAX","JFK","JNU","KOA","KTN","LAN","LAS","LAW","LAX","LBB","LCH","LEX","LFT","LGA","LGB","LIH","LIT","LNK","LRD","LSE","LWS","LYH","MAF","MBS","MCI","MCN","MCO","MDT","MDW","MEI","MEM","MFE","MFR","MGM","MHT","MIA","MKE","MLB","MLI","MLU","MOB","MOD","MOT","MQT","MRY","MSN","MSO","MSP","MSY","MTJ","MYR","OAK","OGG","OKC","OMA","OME","ONT","ORD","ORF","OTZ","OXR","PBI","PDX","PFN","PHF","PHL","PHX","PIA","PIH","PIT","PNS","PSC","PSE","PSG","PSP","PVD","PWM","RAP","RDD","RDM","RDU","RIC","RNO","ROA","ROC","RST","RSW","SAN","SAT","SAV","SBA","SBN","SBP","SCC","SCE","SDF","SEA","SFO","SGF","SGU","SHV","SIT","SJC","SJT","SJU","SLC","SMF","SMX","SNA","SPI","SPS","SRQ","STL","STT","STX","SUN","SWF","SYR","TLH","TOL","TPA","TRI","TUL","TUP","TUS","TVC","TWF","TXK","TYR","TYS","VLD","VPS","WRG","XNA","YAK","YUM"],
+            "cardinality_distribution": { "type":"uniform", "min":0, "max":267},
+            "percent_missing": 0,
+            "percent_nulls": 0
+        },
+        {
+            "type":"int",
+            "name":"departure_delay",
+            "distribution": { "type":"uniform","min":-15, "max":35 },
+            "cardinality": 50,
+            "cardinality_distribution": {"type":"uniform", "min":0,"max":49},
+            "percent_missing":0,
+            "percent_nulls": 0
+        } 
+      ]
+    }
+  ],
+  "interarrival": {
+    "type": "constant",
+    "value": 4
+  },
+  "states": [
+    {
+      "name": "a_flight",
+      "emitter": "flight",
+      "delay": {
+        "type": "constant",
+        "value": 1
+      },
+      "transitions": [
+        {
+          "next": "stop",
+          "probability": 1.0
+        }
+      ]
+    }
+  ]
+}
