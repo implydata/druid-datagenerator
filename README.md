@@ -6,8 +6,8 @@ A highly customizable event data generator, created by the team at Imply.
 
 You can use the generator in a number of ways:
 
-* Using Python 3 from the [command line](#docs/command-line.md)
-* By running a [Docker container](#docs/service.md) that surfaces APIs
+* Using Python 3 from the [command line](docs/command-line.md)
+* By running a [Docker container](docs/server.md) that surfaces APIs
 
 ## Contributing
 

@@ -4,7 +4,13 @@ The Druid Data Driver is a python script that simulates a workload that generate
 You can use a JSON config file to describe the characteristics of the workload you want the Druid Data Driver to simulate.
 The script uses this config file to generate JSON records.
 
-`python generator/DruidDataDriver.py [options]`
+```
+python generator/DruidDataDriver.py
+		-o <JSON target definition>
+		[-f <JSON configuration>]
+		[-s <timestamp>]
+		[{-n <int> | -t <timestamp>}]
+```
 
 ## Prerequities
 
@@ -30,7 +36,7 @@ pip install sortedcontainers
 
 | Argument | Description | Required? |
 |---|---|---|
-| [`-f`](#select-the-config-file) | The name of the [configuration](#config.md) to use. All configuration files are stored in the `config_file` folder. | No |
+| [`-f`](#select-the-config-file) | The name of the [configuration](config.md) to use. All configuration files are stored in the `config_file` folder. | No |
 | [`-o`](#select-the-target-definition-file) | The name of the file that contains the [target definition](#target.md). | Yes |
 | [`-s`](#set-a-start-time) | Simulate the start time for `__time`. | No |
 | [`-n`](#set-generation-limit) | The number of records to generate. Must not be used in combinaton with `-t`. | No |

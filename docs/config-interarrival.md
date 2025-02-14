@@ -1,6 +1,6 @@
 ## Event interarrival time
 
-`interarrival` sets the inter-arrival time in seconds between events emitted by the data generator, described using a [distribution](#distributions.md).
+`interarrival` sets the inter-arrival time in seconds between events emitted by the data generator, described using a [distribution](distributions.md).
 
 The following example sets a `constant` distribution descriptor so that events are spaced one second apart.
 

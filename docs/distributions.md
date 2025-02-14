@@ -2,7 +2,7 @@
 
 Distributions set how the data being created is distributed.
 
-Distributions are used for [`interarrival`](./config-interarrival) and emitter dimension [`values`](./emitters).
+Distributions are used for [`interarrival`](./config-interarrival.md) and emitter dimension [`values`](./config-emitters.md).
 
 | Field | Description | Possible values | Required? |
 |---|---|---|---|
