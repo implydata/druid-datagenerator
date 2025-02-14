@@ -1,0 +1,38 @@
+{
+	"emitters": [
+	    {
+	      "name": "simple",
+	      "dimensions": [
+	        {
+	          "type": "counter",
+	          "name": "dimension1"
+	        },
+	        {
+	          "type": "counter",
+	          "name": "dimension2",
+	          "start": 5
+	        }
+	      ]
+	    }
+	],
+ 	"interarrival": {
+    	"type": "constant",
+    	"value": 1
+  		},
+  	"states": [
+		{
+		  "name": "initial",
+		  "emitter": "simple",
+		  "delay": {
+	    	"type": "constant",
+	    	"value": 1
+	  		},
+		  "transitions": [
+	        {
+	          "next": "initial",
+	          "probability": 1.0
+	        }
+	      ]
+		}
+	]
+}
