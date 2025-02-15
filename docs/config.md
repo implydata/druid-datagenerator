@@ -30,7 +30,7 @@ The data generator operates in one of two modes.
 
 | Object | Description | Options | Required? |
 |---|---|---|---|
-| [`type`](./config-types.md) | The type of generator to use. | __`generator`__ | No |
+| `type` | The type of generator to use. | `generator` | No |
 | [`emitters`](./config-emitters.md) | A list of emitters for this configuration. | See [`emitters`](./config-emitters.md) | Yes |
 | [`interarrival`](./config-interarrival.md) | Sets the period of time that elapses between one event being generated and the next. | See [`interarrival`](./config-interarrival.md) | Yes |
 | [`states`](./config-states.md) | A list of states associated with each emitter. | See [`states`](./config-states.md) | Yes |
@@ -74,7 +74,7 @@ Data Generator Job:
 
 | Object | Description | Options | Required? |
 |---|---|---|---|
-| [`type`](./config-types.md) | The type of generator to use. | `replay` | Yes |
+| `type` | The type of generator to use. | `generator` | No |
 
 A replay config uses a prerecorded set of event data to simulate the same set of events with the same cadence but with a simulated time clock. It will read the events from a CSV file mapping the primary time column in the data set and replacing it with a simulated time. The job will run for either a simulated duration specified in the "time" property of the launching job or until it produces the number of records requested "total_events".
 
