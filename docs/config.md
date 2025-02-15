@@ -12,7 +12,7 @@ Provide the configuration as a JSON object using either the `-c` command-line ar
 In this example, the `generator_config.json` file has been stored inside the `config_file` folder. The following command is then run from the command line in the repo root. Note that the `-c` argument excludes the `config_file` folder name as it is relative.
 
 ```
-python generator/DruidDataDriver.py -c generator_config.json -o generator_output.json -t 5M
+python generator/DruidDataDriver.py -c config.json -o target.json -t 5M
 ```
 
 Do not mix generator configuration and [generator targets](./target.md). From the command line, use the `-o` argument with a separate target configuration file.
@@ -26,7 +26,9 @@ The data generator operates in one of two modes.
 
 #### `generator`
 
-`generator` is the default type, and will be used if no `type` is supplied in the JSON document.
+In `generator` mode, [state machines](./config-states.md) generate events, instantiated based on [`interarrival`](./config-interarrival.md) times.
+
+This is the default type, and will be used if no `type` is supplied in the generator configuration.
 
 | Object | Description | Options | Required? |
 |---|---|---|---|
@@ -35,48 +37,13 @@ The data generator operates in one of two modes.
 | [`interarrival`](./config-interarrival.md) | Sets the period of time that elapses between one event being generated and the next. | See [`interarrival`](./config-interarrival.md) | Yes |
 | [`states`](./config-states.md) | A list of states associated with each emitter. | See [`states`](./config-states.md) | Yes |
 
-
-In generator mode, a [state machine](./config-states.md) is created for each emitter, instantiated based on [`interarrival`](./config-interarrival.md).
-
-Use state machines to simulate events from different types of producer, such as a device (IoT) or website visitor (clickstream).
-
-Each state machine is probabilistic. State transitions may be stochastic based on probabilities.
-
-Each state in the state machine performs four operations:
-
-- First, the state sets any variable values
-- Next, the state emits a record (based on an emitter description)
-- The state delays for some period of time (based on a distribution)
-- Finally, the state selects and transitions to a different state (based on a probabilistic transition table)
-
-Emitters are record generators that output records as specified in the emitter description.
-
-Each state employs a single emitter, but the same emitter may be used by many states.
-
-The config JSON has the following format:
-
-Data Generator Job:
-```
-{
-  "type": "generator" 
-  "emitters": [...], 
-  "interarrival": {...},
-  "states": [...]
-}
-```
-- The _type_ of job can be either "generator" (the default) or "replay"
-- The _emitters_ list is a list of record generators.
-- The _interarrival_ object describes the inter-arrival times (i.e., inverse of the arrival rate) of entities to the state machine
-- The _states_ list is a description of the state machine
-
-
 #### `replay`
+
+A replay config uses a prerecorded set of event data to simulate the same set of events with the same cadence but with a simulated time clock. It will read the events from a CSV file mapping the primary time column in the data set and replacing it with a simulated time. The job will run for either a simulated duration specified in the "time" property of the launching job or until it produces the number of records requested "total_events".
 
 | Object | Description | Options | Required? |
 |---|---|---|---|
 | `type` | The type of generator to use. | `generator` | No |
-
-A replay config uses a prerecorded set of event data to simulate the same set of events with the same cadence but with a simulated time clock. It will read the events from a CSV file mapping the primary time column in the data set and replacing it with a simulated time. The job will run for either a simulated duration specified in the "time" property of the launching job or until it produces the number of records requested "total_events".
 
 The config properties for a replay job are:
 
