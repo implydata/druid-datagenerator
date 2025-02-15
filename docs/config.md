@@ -32,12 +32,14 @@ This is the default type, and will be used if no `type` is supplied in the gener
 | `type` | The type of generator to use. | `generator` | No |
 | [`states`](./generator-states.md) | A list of states that will be used to generate events. | See [`states`](./generator-states.md) | Yes |
 | [`emitters`](./generator-emitters.md) | A list of emitters. | See [`emitters`](./generator-emitters.md) | Yes |
-| [`interarrival`](./generator-interarrival.md) | The period of time that elapses between one state machine being started and the next. | See [`interarrival`](./generator-interarrival.md) | Yes |
+| [`interarrival`](./generator-interarrival.md) | The period of time that elapses between one event being emitted and the next. | See [`interarrival`](./generator-interarrival.md) | Yes |
 
 
 In this example, there is just one state: `state_1`. When that state is reached, the `example_record_1` emitter produces an event with one field called `enum_dim` where the possible values of that field are selected using a uniform distribution from a list of characters.
 
 There is then a `delay` of 1 second and the next state is selected from a list of possible `transitions`. In this configuration, because the `next` state is the same as the current state, this process repeats until the generator itself stops.
+
+The `interarrival` section ensures that the events themselves are spaced apart in 1-second intervals.
 
 ```
 {
