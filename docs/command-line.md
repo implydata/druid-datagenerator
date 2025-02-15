@@ -12,7 +12,7 @@ python generator/DruidDataDriver.py
 		[{-n <int> | -t <timestamp>}]
 ```
 
-## Prerequities
+## Prerequities
 
 The data generator requires Python 3.
 
@@ -56,7 +56,7 @@ Set the output of the data generator by setting the `target` object.
 
 Use the _-o_ option to designate a target definition file name. The [target](./target.md) defines where the generated messages are sent.
 
-### Set a start time
+### Set a start time
 
 The _-s_ option tells the driver to use simulated time instead of wall clock time (the default).
 
@@ -64,7 +64,7 @@ The simulated clock starts at the time specified by the argument (or the current
 
 When used with the _-t_ option, the simulated clock simulates the duration. This option is useful for generating batch data as quickly as possible.
 
-### Set generation limit
+### Set generation limit
 
 Use either `-n` or `-t` to limit how long generation executes for. If neither option is present, the script will run indefinitely.
 
