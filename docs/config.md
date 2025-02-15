@@ -16,12 +16,10 @@ Do not mix generator configuration and [generator targets](./target.md). From th
 
 ## Generator types
 
-The data generator operates in one of two modes.
+The data generator operates in one of two modes. Select which mode to use by setting the top-level `type` field in your generator configuration.
 
 * [`generator`](#generator) (default), useful for synthetic event generation.
 * [`replay`](#replay), useful for both synthetic and trace-based event generation.
-
-The `type` of the generator to use is given in the top level `type` field in the generator configuration.
 
 ### `generator`
 
@@ -35,6 +33,57 @@ This is the default type, and will be used if no `type` is supplied in the gener
 | [`emitters`](./config-emitters.md) | A list of emitters for this configuration. | See [`emitters`](./config-emitters.md) | Yes |
 | [`interarrival`](./config-interarrival.md) | Sets the period of time that elapses between one event being generated and the next. | See [`interarrival`](./config-interarrival.md) | Yes |
 | [`states`](./config-states.md) | A list of states associated with each emitter. | See [`states`](./config-states.md) | Yes |
+
+In this example, there is just one state: `state_1`. When that state is reached, the `example_record_1` emitter produces an event with one field called `enum_dim` where the possible values of that field are selected using a uniform distribution from a list of characters.
+
+There is then a `delay` of 1 second and the next state is selected from a list of possible `transitions`. In this configuration, because the `next` state is the same as the current state, this process repeats until the generator itself stops.
+
+```
+{
+  "type": "generator",
+  "states": [
+    {
+      "name": "state_1",
+      "emitter": "example_record_1",
+      "delay": {
+        "type": "constant",
+        "value": 1
+      },
+      "transitions": [
+        {
+          "next": "state_1",
+          "probability": 1
+        }
+      ]
+    }
+  ],
+  "interarrival": {
+    "type": "constant",
+    "value": 1
+  },
+  "emitters": [
+    {
+      "name": "example_record_1",
+      "dimensions": [
+        {
+          "type": "enum",
+          "name": "enum_dim",
+          "values": [
+            "A",
+            "B",
+            "C"
+          ],
+          "cardinality_distribution": {
+            "type": "uniform",
+            "min": 0,
+            "max": 2
+          }
+        }
+      ]
+    }
+  ]
+}
+```
 
 ### `replay`
 
@@ -64,7 +113,7 @@ If the time simulation starts in the past and reaches the current time, the job 
 
 Example:
 
-```json
+```
 {
   "type": "replay",
   "time_field": "ts",
