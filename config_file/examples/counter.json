@@ -1,4 +1,42 @@
 {
+  "states": [
+    {
+      "name": "state_1",
+      "emitter": "example_record_1",
+      "delay": {
+        "type": "constant",
+        "value": 1
+      },
+      "transitions": [
+        {
+          "next": "state_1",
+          "probability": 0.5
+        },
+        {
+          "next": "state_2",
+          "probability": 0.5
+        }
+      ]
+    },
+    {
+      "name": "state_2",
+      "emitter": "example_record_2",
+      "delay": {
+        "type": "constant",
+        "value": 1
+      },
+      "transitions": [
+        {
+          "next": "state_1",
+          "probability": 0.5
+        },
+        {
+          "next": "state_2",
+          "probability": 0.5
+        }
+      ]
+    }
+  ],
   "emitters": [
     {
       "name": "example_record_1",
@@ -54,43 +92,5 @@
   "interarrival": {
     "type": "constant",
     "value": 1
-  },
-  "states": [
-    {
-      "name": "state_1",
-      "emitter": "example_record_1",
-      "delay": {
-        "type": "constant",
-        "value": 1
-      },
-      "transitions": [
-        {
-          "next": "state_1",
-          "probability": 0.5
-        },
-        {
-          "next": "state_2",
-          "probability": 0.5
-        }
-      ]
-    },
-    {
-      "name": "state_2",
-      "emitter": "example_record_2",
-      "delay": {
-        "type": "constant",
-        "value": 1
-      },
-      "transitions": [
-        {
-          "next": "state_1",
-          "probability": 0.5
-        },
-        {
-          "next": "state_2",
-          "probability": 0.5
-        }
-      ]
-    }
-  ]
+  }
 }
