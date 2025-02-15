@@ -23,16 +23,16 @@ The data generator operates in one of two modes. Select which mode to use by set
 
 ### `generator`
 
-In `generator` mode, [state machines](./config-states.md) generate events, instantiated based on [`interarrival`](./config-interarrival.md) times.
+In `generator` mode, [state machines](./generator-states.md) generate events, instantiated based on [`interarrival`](./generator-interarrival.md) times.
 
 This is the default type, and will be used if no `type` is supplied in the generator configuration.
 
 | Object | Description | Options | Required? |
 |---|---|---|---|
 | `type` | The type of generator to use. | `generator` | No |
-| [`emitters`](./config-emitters.md) | A list of emitters for this configuration. | See [`emitters`](./config-emitters.md) | Yes |
-| [`interarrival`](./config-interarrival.md) | Sets the period of time that elapses between one event being generated and the next. | See [`interarrival`](./config-interarrival.md) | Yes |
-| [`states`](./config-states.md) | A list of states associated with each emitter. | See [`states`](./config-states.md) | Yes |
+| [`emitters`](./generator-emitters.md) | A list of emitters for this configuration. | See [`emitters`](./generator-emitters.md) | Yes |
+| [`interarrival`](./generator-interarrival.md) | Sets the period of time that elapses between one event being generated and the next. | See [`interarrival`](./generator-interarrival.md) | Yes |
+| [`states`](./generator-states.md) | A list of states associated with each emitter. | See [`states`](./generator-states.md) | Yes |
 
 In this example, there is just one state: `state_1`. When that state is reached, the `example_record_1` emitter produces an event with one field called `enum_dim` where the possible values of that field are selected using a uniform distribution from a list of characters.
 
