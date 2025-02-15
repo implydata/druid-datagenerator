@@ -1,4 +1,4 @@
-## Generator states
+## Generator states
 
 When the generator reaches a state, the following happens:
 
@@ -21,24 +21,7 @@ List all possible states in the `states` object of the configuration file, with 
 | [`transitions`](#transitions) | A list of all possible states that could be entered after this state. | | Yes |
 | `delay` | How long (in seconds) to remain in the state before transitioning, defined as a [`distribution`](./distributions.md). | | Yes |
 
-
-```
-{
-:
-	"states": [
-		{
-		  "name": <state>,
-		  "variables": [variable 1, variable 2...],
-		  "emitter": <emitter>,
-		  "transitions": [state transition 1, state transition 2...],
-		  "delay": <distribution descriptor>
-		}
-	]
-:
-}
-```
-
-### Variables
+### Variables
 
 See the [variables](../config_file/examples/variable.json) example configuration file.
 
@@ -46,45 +29,120 @@ See [`variable`-type dimensions](./emitters.md#variable).
 
 ### Transitions
 
-Transition objects describe potential state transitions from the current state to the next state.
+For a given state, this part of the configuration lists all the potential states that can be entered, and the probabilities for each state.
+
+This allows for very simple (single state) through to very complex (multiple branching) state machines.
 
 | Field | Description | Possible values | Required? |
 |---|---|---|---|
 | `next` | Either the name of the next state to enter _or_ `stop` |  | Yes |
 | `probability` | The probability that this state will be entered. | A value greater than zero and less than or equal to one. The sum total of all probabilities must be 1. | Yes |
 
-These objects have the following form:
-
-```
-{
-  "next": <state name>,
-  "probability": <probability value>
-}
-```
-
 When the `next` field is set to `stop`, the state machine will terminate.
 
-In the following example, the same state is applied after every transition. Apply this approach when state engine functionality is not required.
+In this example, there are two states, `state_1` and `state_2`.
 
-```
+`state_1` uses the `example_record_1` emitter, while `state_2` uses the `example_record_2` emitter.
+
+The initial state is the first in the list, `state_1`. When `state_1` emits a record, a `delay` of 1 second occurs before a selection is made from `transitions`: there is a 50% probability that the next state will be `state_2`, and a 50% probability that the next state will be `state_1`.
+
+If `state_2` is selected, this emits an `example_record_2`, a `delay` of 1 second occurs, and another selection is made from `transitions`: there is a 75% chance that the next state will be `state_1`, and a 25% chance that it will be `state_2`.
+
+```json
 {
-:
-	"states": [
-	    {
-	      "name": "initial",
-	      "emitter": "emitter-name",
-	      "delay": {
-	        "type": "constant",
-	        "value": 1
-	      },
-	      "transitions": [
-	        {
-	          "next": "initial",
-	          "probability": 1.0
-	        }
-	      ]
-	    }
-	  ]
-:
+  "states": [
+    {
+      "name": "state_1",
+      "emitter": "example_record_1",
+      "delay": {
+        "type": "constant",
+        "value": 1
+      },
+      "transitions": [
+        {
+          "next": "state_1",
+          "probability": 0.5
+        },
+        {
+          "next": "state_2",
+          "probability": 0.5
+        }
+      ]
+    },
+    {
+      "name": "state_2",
+      "emitter": "example_record_2",
+      "delay": {
+        "type": "constant",
+        "value": 1
+      },
+      "transitions": [
+        {
+          "next": "state_1",
+          "probability": 0.75
+        },
+        {
+          "next": "state_2",
+          "probability": 0.25
+        }
+      ]
+    }
+  ],
+  "emitters": [
+    {
+      "name": "example_record_1",
+      "dimensions": [
+        {
+          "type": "counter",
+          "name": "default_counter1"
+        },
+        {
+          "type": "counter",
+          "name": "start_counter1",
+          "start": 5
+        },
+        {
+          "type": "counter",
+          "name": "increment_counter1",
+          "increment": 5
+        },
+        {
+          "type": "counter",
+          "name": "both_counter1",
+          "start": 5,
+          "increment": 5
+        }
+      ]
+    },
+    {
+      "name": "example_record_2",
+      "dimensions": [
+        {
+          "type": "counter",
+          "name": "default_counter2"
+        },
+        {
+          "type": "counter",
+          "name": "start_counter2",
+          "start": 5
+        },
+        {
+          "type": "counter",
+          "name": "increment_counter2",
+          "increment": 5
+        },
+        {
+          "type": "counter",
+          "name": "both_counter2",
+          "start": 5,
+          "increment": 5
+        }
+      ]
+    }
+  ],
+  "interarrival": {
+    "type": "constant",
+    "value": 1
+  }
 }
 ```
