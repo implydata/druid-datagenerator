@@ -1,8 +1,6 @@
 ## Run from the command line
 
-The Druid Data Driver is a python script that simulates a workload that generates data for Druid ingestion.
-You can use a JSON config file to describe the characteristics of the workload you want the Druid Data Driver to simulate.
-The script uses this config file to generate JSON records.
+Run the `DruidDataDriver.py` script from the command line to create synthetic data in JSON format.
 
 ```
 python generator/DruidDataDriver.py
@@ -38,9 +36,9 @@ pip install sortedcontainers
 |---|---|---|
 | [`-f`](#select-the-config-file) | The name of the [configuration](config.md) to use. All configuration files are stored in the `config_file` folder. | No |
 | [`-o`](#select-the-target-definition-file) | The name of the file that contains the [target definition](#target.md). | Yes |
-| [`-s`](#set-a-start-time) | Simulate the start time for `__time`. | No |
 | [`-n`](#set-generation-limit) | The number of records to generate. Must not be used in combinaton with `-t`. | No |
 | [`-t`](#set-generation-limit) | The length of time to create records for. Must not be used in combination with `-n`. | No |
+| [`-s`](#set-a-start-time) | Use a synthetic clock starting at the specified ISO time, rather than using the system clock. | No |
 
 ### Select the config file
 
@@ -55,14 +53,6 @@ When the `-f` option is not used, the configuration will be read from `stdin`.
 Set the output of the data generator by setting the `target` object.
 
 Use the _-o_ option to designate a target definition file name. The [target](./target.md) defines where the generated messages are sent.
-
-### Set a start time
-
-The _-s_ option tells the driver to use simulated time instead of wall clock time (the default).
-
-The simulated clock starts at the time specified by the argument (or the current time if no argument is specified) and advances the simulated clock based on the generated events (i.e., records).
-
-When used with the _-t_ option, the simulated clock simulates the duration. This option is useful for generating batch data as quickly as possible.
 
 ### Set generation limit
 
@@ -96,4 +86,51 @@ Use `-n` to limit generation to a number of records.
 
 ```
 python generator/DruidDataDriver.py -c generator_config.json -o generator_output.json -n 1000
+```
+
+### Set a start time
+
+Specify a start time in ISO format to instruct the driver to use simulated time instead of the system clock time (the default).
+
+In the following example, the constraint is the number of records.
+
+```
+python3 generator/DruidDataDriver.py -f example.json -o stdout.json -n 20 -s "2001-12-20T13:13"
+```
+
+* `example.json` generator configuration file from the `config_file` directory is used.
+* The `target` in `stdout.json` determines where the JSON records will be output.
+* `-n` requires that only 20 rows are output.
+* The synthetic `time` clock will start on 20th December 2001 at 13:13pm.
+
+This results in:
+
+```
+{"time":"2001-12-20T13:13:12.132","server":"127.0.0.5","client":"63.211.68.115","endpoint":"GET /api/users/73/contributions","response_time_ms":326}
+{"time":"2001-12-20T13:13:17.464","server":"127.0.0.3","client":"79.58.216.203","endpoint":"GET /api/search?q=quantum-mechanics","response_time_ms":262}
+{"time":"2001-12-20T13:13:20.776","server":"127.0.0.4","client":"96.54.85.35","endpoint":"GET /api/categories","response_time_ms":75}
+{"time":"2001-12-20T13:13:28.023","server":"127.0.0.4","client":"96.54.85.35","endpoint":"GET /api/articles/56/contributors","response_time_ms":41}
+{"time":"2001-12-20T13:13:28.077","server":"127.0.0.5","client":"18.202.244.47","endpoint":"POST /api/feedback","response_time_ms":179194}
+```
+
+In the next example, the constraint is duration. This will cause the generator to create as many JSON records as would fit into a given duration (see `-t` below).
+
+```
+python3 generator/DruidDataDriver.py -f example.json -o stdout.json -t 1h -s "2027-03-12"
+```
+
+* The `-s` flag sets a synthetic clock start of 12th March 2027.
+* Since `-t` is set to `1h`, the generator creates an hour's worth of data.
+
+The result is a list of events spanning an hour from the time given in `-s`. This is therefore recommended when generating large volumes of data.
+
+```
+{"time":"2027-03-12T00:00","server":"127.0.0.6","client":"60.138.23.232","endpoint":"GET /api/articles/102/history","response_time_ms":405}
+{"time":"2027-03-12T00:00:06.157","server":"127.0.0.6","client":"73.198.96.12","endpoint":"GET /api/articles","response_time_ms":210}
+{"time":"2027-03-12T00:00:06.623","server":"127.0.0.4","client":"87.21.26.43","endpoint":"GET /api/articles/42","response_time_ms":445}
+:
+:
+{"time":"2027-03-12T00:59:59.961","server":"127.0.0.4","client":"87.21.26.43","endpoint":"GET /api/users/73/contributions","response_time_ms":489}
+{"time":"2027-03-12T00:59:59.965","server":"127.0.0.4","client":"62.155.215.104","endpoint":"POST /api/users/login","response_time_ms":97521}
+{"time":"2027-03-12T00:59:59.973","server":"127.0.0.5","client":"87.21.26.43","endpoint":"GET /api/articles/56/contributors","response_time_ms":118}
 ```
