@@ -2,8 +2,8 @@
 
 When the worker reaches a state, the following happens:
 
-1. [Variable](./config-states.md#state-variables) values are set
-2. Based on a the [emitter description](./config-emitters), an event is emitted.
+1. [Variable](#variables) values are set.
+2. Based on a the [emitter description](./genspec-emitters.md), an event is emitted.
 3. The generator waits for a period of time.
 4. The next state is selected.
 
@@ -17,7 +17,7 @@ List all possible states in the `states` object of the configuration file, with 
 |---|---|---|---|
 | `name` | A unique, friendly name for this state. |  | Yes |
 | `emitter` | The [emitter](./config-emitters.md) to use. | The `name` of an emitter in the `emitter` list. | Yes |
-| [`variables`](#variables) | A list of dimension definitions for [`variable`-type dimensions](./config-emitters.md#variable) | | No |
+| [`variables`](#variables) | A list of dimension definitions for [`variable`-type dimensions](./type-variable.md) | | No |
 | `delay` | How long (in seconds) to remain in the state before transitioning, defined as a [`distribution`](./distributions.md). | | Yes |
 | [`transitions`](#transitions) | A list of all possible states that could be entered after this state. | | Yes |
 
@@ -29,7 +29,7 @@ Variables are defined in the same way as `emitter` dimensions.
 
 Address the variable values in `emitters` by using a `variable`-type dimension, and using the `name` of the variable in the `variable` field.
 
-For more information, see [`variable`-type dimensions](./emitters.md#variable).
+For more information, see [`variable`-type dimensions](./type-variable.md).
 
 ### Transitions
 
