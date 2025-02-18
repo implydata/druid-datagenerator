@@ -1,4 +1,4 @@
-## Run from the command line
+## Generate data from the command line
 
 Run the `DruidDataDriver.py` script from the command line to create synthetic data in JSON format.
 

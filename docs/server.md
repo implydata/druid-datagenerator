@@ -1,21 +1,23 @@
-## The Data Driver Server using Docker
+## Generate data over HTTP
 
-You can run the data driver in a docker container using:
+Start the data generator by using the latest image from Imply:
+
 ```
 docker run -d -p 9999:9999 imply/datagen:latest
 ```
 
-The server provides the following APIs:
-
-### list
+### /list
 Lists the data generator specifications available on the server.
 Example:
+
 ```
 curl "http://localhost:9999/list"
 ```
+
 Output: 
+
 ```
-["clickstream/clickstream.json", "clickstream/users_init.json", "clickstream/users_changes.json", "examples/langmap.json", "examples/missing.json", "examples/simple.json", "examples/list.json", "examples/deepthought.json", "examples/variable.json", "examples/nulls.json", "examples/counter.json", "examples/object.json", "examples/types.json"]
+["clickstream/clickstream.json","clickstream/users_changes.json"]
 ```
 
 ### /start
