@@ -1,6 +1,6 @@
 ## Generator states
 
-When the generator reaches a state, the following happens:
+When the worker reaches a state, the following happens:
 
 1. [Variable](./config-states.md#state-variables) values are set
 2. Based on a the [emitter description](./config-emitters), an event is emitted.
@@ -16,16 +16,20 @@ List all possible states in the `states` object of the configuration file, with 
 | Field | Description | Possible values | Required? |
 |---|---|---|---|
 | `name` | A unique, friendly name for this state. |  | Yes |
-| [`variables`](#variables) | A list of dimension definitions for [`variable`-type dimensions](./config-emitters.md#variable) | | No |
 | `emitter` | The [emitter](./config-emitters.md) to use. | The `name` of an emitter in the `emitter` list. | Yes |
-| [`transitions`](#transitions) | A list of all possible states that could be entered after this state. | | Yes |
+| [`variables`](#variables) | A list of dimension definitions for [`variable`-type dimensions](./config-emitters.md#variable) | | No |
 | `delay` | How long (in seconds) to remain in the state before transitioning, defined as a [`distribution`](./distributions.md). | | Yes |
+| [`transitions`](#transitions) | A list of all possible states that could be entered after this state. | | Yes |
 
 ### Variables
 
-See the [variables](../config_file/examples/variable.json) example configuration file.
+A worker can be assigned variables as it enters a state, allowing values output by emitters to be maintained across states.
 
-See [`variable`-type dimensions](./emitters.md#variable).
+Variables are defined in the same way as `emitter` dimensions.
+
+Address the variable values in `emitters` by using a `variable`-type dimension, and using the `name` of the variable in the `variable` field.
+
+For more information, see [`variable`-type dimensions](./emitters.md#variable).
 
 ### Transitions
 
