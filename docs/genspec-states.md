@@ -16,16 +16,14 @@ List all possible states in the `states` object of the configuration file, with 
 | Field | Description | Possible values | Required? |
 |---|---|---|---|
 | `name` | A unique, friendly name for this state. |  | Yes |
-| [`variables`](#variables) | A list of dimension definitions for [`variable`-type dimensions](./type-variable.md) | | No |
-| `emitter` | The [emitter](./genspec-emitters.md) to use. | The `name` of an emitter in the `emitter` list. | Yes |
+| `emitter` | The [emitter](./config-emitters.md) to use. | The `name` of an emitter in the `emitter` list. | Yes |
+| [`variables`](#variables) | A list of [field generators](./fieldgen.md). | | No |
 | `delay` | How long (in seconds) to remain in the state before transitioning, defined as a [`distribution`](./distributions.md). | | Yes |
 | [`transitions`](#transitions) | A list of all possible states that could be entered after this state. | | Yes |
 
 ### Variables
 
-A worker can be assigned variables as it enters a state, allowing values output by emitters to be maintained across states.
-
-Variables are defined in the same way as `emitter` dimensions.
+The optional `variables` list contains [field generators](./fieldgen.md). When a worker enters this state, it generates fields that are then stored for later re-use.
 
 Address the variable values in `emitters` by using a `variable`-type dimension, and using the `name` of the variable in the `variable` field.
 
