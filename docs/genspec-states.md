@@ -17,7 +17,7 @@ List all possible states in the `states` object of the configuration file, with 
 |---|---|---|---|
 | `name` | A unique, friendly name for this state. |  | Yes |
 | [`variables`](#variables) | A list of dimension definitions for [`variable`-type dimensions](./type-variable.md) | | No |
-| `emitter` | The [emitter](./config-emitters.md) to use. | The `name` of an emitter in the `emitter` list. | Yes |
+| `emitter` | The [emitter](./genspec-emitters.md) to use. | The `name` of an emitter in the `emitter` list. | Yes |
 | `delay` | How long (in seconds) to remain in the state before transitioning, defined as a [`distribution`](./distributions.md). | | Yes |
 | [`transitions`](#transitions) | A list of all possible states that could be entered after this state. | | Yes |
 
