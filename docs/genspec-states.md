@@ -4,7 +4,7 @@ When the worker reaches a state, the following happens:
 
 1. [Variable](#variables) values are set.
 2. Based on a the [emitter description](./genspec-emitters.md), an event is emitted.
-3. The generator waits for a period of time.
+3. The generator delays for a period of time.
 4. The next state is selected.
 
 The selection of the next state is probabilistic, meaning it's possible for the output events to be stochastic (ie, they have a random probability distribution).
@@ -16,8 +16,8 @@ List all possible states in the `states` object of the configuration file, with 
 | Field | Description | Possible values | Required? |
 |---|---|---|---|
 | `name` | A unique, friendly name for this state. |  | Yes |
-| `emitter` | The [emitter](./config-emitters.md) to use. | The `name` of an emitter in the `emitter` list. | Yes |
 | [`variables`](#variables) | A list of dimension definitions for [`variable`-type dimensions](./type-variable.md) | | No |
+| `emitter` | The [emitter](./config-emitters.md) to use. | The `name` of an emitter in the `emitter` list. | Yes |
 | `delay` | How long (in seconds) to remain in the state before transitioning, defined as a [`distribution`](./distributions.md). | | Yes |
 | [`transitions`](#transitions) | A list of all possible states that could be entered after this state. | | Yes |
 
