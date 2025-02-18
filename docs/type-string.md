@@ -1,6 +1,6 @@
 ## Synthetic strings
 
-When an [emitter dimension](./generator-emitters.md#dimensions) type is `string`, a random string is generated.
+When an [emitter dimension](./genspec-emitters.md#dimensions) type is `string`, a random string is generated.
 
 | Field | Description | Possible values | Required? | Default |
 |---|---|---|---|---|

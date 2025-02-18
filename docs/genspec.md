@@ -11,7 +11,7 @@ When not specified, the generator defaults to using `generator` mode.
 
 ### `generator`
 
-In `generator` mode, workers traverse a number of [`states`](./generator-states.md) and generates events as they go using [`emitters`](./genspec-emitters.md). Workers are created periodically, according to the [`interarrival`](./genspec-interarrival.md) time.
+In `generator` mode, workers traverse a number of [`states`](./genspec-states.md) and generates events as they go using [`emitters`](./genspec-emitters.md). Workers are created periodically, according to the [`interarrival`](./genspec-interarrival.md) time.
 
 DO NOT include `type` in the generator specification when using `generator` mode.
 
@@ -19,10 +19,11 @@ This is the default mode, and will be used if no `type` is supplied in the gener
 
 | Object | Description | Options | Required? |
 |---|---|---|---|
-| [`states`](./generator-states.md) | A list of states that will be used to generate events. | See [`states`](./generator-states.md) | Yes |
-| [`emitters`](./generator-emitters.md) | A list of emitters. | See [`emitters`](./generator-emitters.md) | Yes |
+| `type` | The type of generator to use. | `generator` | No. |
+| [`states`](./genspec-states.md) | A list of states that will be used to generate events. | See [`states`](./genspec-states.md) | Yes |
+| [`emitters`](./genspec-emitters.md) | A list of emitters. | See [`emitters`](./genspec-emitters.md) | Yes |
 | [`target`](./tarspec.md) | A target specification. | See [`targets`](./tarspec.md) | No |
-| [`interarrival`](./generator-interarrival.md) | The period of time that elapses between one event being emitted and the next. | See [`interarrival`](./generator-interarrival.md) | Yes |
+| [`interarrival`](./genspec-interarrival.md) | The period of time that elapses between one event being emitted and the next. | See [`interarrival`](./genspec-interarrival.md) | Yes |
 
 In this example, there is just one state: `state_1`. When each worker reaches that state, it uses the `example_record_1` emitter to produce an event with one field called `enum_dim`, where the possible values of that field are selected using a uniform distribution from a list of characters. `target` provides an inline [target specification](./tarspec.md), causing the output to be sent to `stdout`.
 
@@ -32,6 +33,7 @@ The `interarrival` delay causes new workers to be spawned once every second.
 
 ```json
 {
+  "type": "generator",
   "states": [
     {
       "name": "state_1",
@@ -110,7 +112,7 @@ When run with the `-m 3`, 3 workers are spawned. Since `interarrival` is a `cons
 {"time":"2025-02-18T09:36:00.627","enum_dim":"C"}
 {"time":"2025-02-18T09:36:01.640","enum_dim":"A"}
 {"time":"2025-02-18T09:36:04.635","enum_dim":"A"}
-``
+```
 
 ### `replay`
 

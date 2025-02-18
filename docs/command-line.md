@@ -4,13 +4,24 @@ Run the `DruidDataDriver.py` script from the command line to create synthetic da
 
 ```
 python generator/DruidDataDriver.py
-		-o <JSON target definition>
-		[-f <JSON configuration>]
-		[-s <timestamp>]
-		[{-n <int> | -t <timestamp>}]
+		-f <generator specification file
+		-m <generator workers limit>
+		-o <target specification file>
+		-s <start timestamp>
+		-n <record limit>
+		-t <duration limit>
 ```
 
-## Prerequities
+| Argument | Description |
+|---|---|---|
+| [`-f`](#generator-specification) | The name of the file in the `config_file` folder containing the [generator specification](#generator-specification).|
+| [`-m`](#generator-specification) | The maximum number of workers to create. Defaults to 100. |
+| [`-o`](#target-specification) | The name of the file that contains the [target definition](#target.md). |
+| [`-s`](#simulated-clock) | Use a simulated clock, starting at the specified ISO time, rather than using the system clock. |
+| [`-n`](#generation-limit) | The number of records to generate. Must not be used in combinaton with `-t`. |
+| [`-t`](#generation-limit) | The length of time to create records for. Must not be used in combination with `-n`. |
+
+### Prerequities
 
 The data generator requires Python 3.
 
@@ -30,31 +41,25 @@ pip install numpy
 pip install sortedcontainers
 ```
 
-## Command line options
+### Generator specification
 
-| Argument | Description | Required? |
-|---|---|---|
-| [`-f`](#select-the-config-file) | The name of the [configuration](config.md) to use. All configuration files are stored in the `config_file` folder. | No |
-| [`-o`](#select-the-target-definition-file) | The name of the file that contains the [target definition](#target.md). | Yes |
-| [`-n`](#set-generation-limit) | The number of records to generate. Must not be used in combinaton with `-t`. | No |
-| [`-t`](#set-generation-limit) | The length of time to create records for. Must not be used in combination with `-n`. | No |
-| [`-s`](#set-a-start-time) | Use a synthetic clock starting at the specified ISO time, rather than using the system clock. | No |
+The [generator specification](genspec.md) is a JSON document that sets how the data generator will execute. When the `-f` option is used, the generation specification will be read from a file in `./config_files`, otherwise the generator specification will be read from `stdin`.
 
-### Select the config file
+The following sections of the JSON document concern what each data generator worker will do.
 
-Every data generator run requires a [configuration file](#config.md).
+* A list of [`states`](./genspec-states.md) that a worker can transition through.
+* A list of [`emitters`](./genspec-emitters.md), listing the dimensions that will be output by a worker and what data they will contain.
+* A [`target`]('./tarspec.md) definition, stating where records should be written. This is optional, and can be supplied as a file using the `-o` argument.
 
-When the `-f` option is used, a configuration file will be read from `./config_files`.
+Finally, the specification sets the `interarrival` time, controlling how often a new worker is spawned. The default maximum number of workers is 100, unless the `-m` argument is used.
 
-When the `-f` option is not used, the configuration will be read from `stdin`.
-
-### Select the target definition file
+### Target specification
 
 Set the output of the data generator by setting the `target` object.
 
 Use the _-o_ option to designate a target definition file name. The [target](./target.md) defines where the generated messages are sent.
 
-### Set generation limit
+### Generation limit
 
 Use either `-n` or `-t` to limit how long generation executes for. If neither option is present, the script will run indefinitely.
 
@@ -65,19 +70,19 @@ Time durations may be specified in terms of seconds, minutes or hours.
 For example, specify 30 seconds as follows:
 
 ```
-python generator/DruidDataDriver.py -c generator_config.json -o generator_output.json -t 30S
+python generator/DruidDataDriver.py -c generator_spec.json -o target_spec.json -t 30S
 ```
 
 Specify 10 minutes as follows:
 
 ```
-python generator/DruidDataDriver.py -c generator_config.json -o generator_output.json -t 10M
+python generator/DruidDataDriver.py -c generator_spec.json -o target_spec.json -t 10M
 ```
 
 Or, specify 1 hour as follows:
 
 ```
-python generator/DruidDataDriver.py -c generator_config.json -o generator_output.json -t 1H
+python generator/DruidDataDriver.py -c generator_spec.json -o target_spec.json -t 1H
 ```
 
 #### Limit generation to a number of records
@@ -85,10 +90,10 @@ python generator/DruidDataDriver.py -c generator_config.json -o generator_output
 Use `-n` to limit generation to a number of records.
 
 ```
-python generator/DruidDataDriver.py -c generator_config.json -o generator_output.json -n 1000
+python generator/DruidDataDriver.py -c generator_spec.json -o target_spec.json -n 1000
 ```
 
-### Set a start time
+### Simulated clock
 
 Specify a start time in ISO format to instruct the driver to use simulated time instead of the system clock time (the default).
 
@@ -98,7 +103,7 @@ In the following example, the constraint is the number of records.
 python3 generator/DruidDataDriver.py -f example.json -o stdout.json -n 20 -s "2001-12-20T13:13"
 ```
 
-* `example.json` generator configuration file from the `config_file` directory is used.
+* `example.json` generator specification from the `config_file` directory is used.
 * The `target` in `stdout.json` determines where the JSON records will be output.
 * `-n` requires that only 20 rows are output.
 * The synthetic `time` clock will start on 20th December 2001 at 13:13pm.

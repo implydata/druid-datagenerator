@@ -1,6 +1,6 @@
 ## Event emitters
 
-Emitters define the data that will be created by the data generator when a particular [state](./generator-states.md) is reached.
+Emitters define the data that will be created by the data generator when a particular [state](./genspec-states.md) is reached.
 
 Define one or more emitters, each with its own dimensions and data specification.
 

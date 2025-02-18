@@ -1,6 +1,6 @@
 ## Synthetic timestamps
 
-When an [emitter dimension](./generator-emitters.md#dimensions) type is `timestamp`, a timestamp is generated in ISO format.
+When an [emitter dimension](./genspec-emitters.md#dimensions) type is `timestamp`, a timestamp is generated in ISO format.
 
 | Field | Description | Possible values | Required? | Default |
 |---|---|---|---|---|

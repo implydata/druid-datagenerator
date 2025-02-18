@@ -14,5 +14,5 @@ You can use the generator in a number of ways:
 You are invited to make all manner of contributions to this project, including:
 
 * New types of emitter dimension type.
-* Sample configuration files.
+* Sample specification files.
 

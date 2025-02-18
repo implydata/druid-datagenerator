@@ -2,9 +2,9 @@
 It is often the case that older data is needed to backfill history up until now and then begin streaming data.
 It can be hard to align where the batch file ends and where the streaming begins.
 
-It can be done by using two simulations of the same generator configuration with the following two job specs:
+It can be done by using two simulations of the same generator specification with the following two job specs:
 
-Batch File Generation example using the iot/iot_twin.json configuration:
+Batch File Generation example using the `iot/iot_twin.json` specification:
 ```json
 {
   "name": "generate_6_months_iot"

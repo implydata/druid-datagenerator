@@ -1,6 +1,6 @@
 ## Synthetic IP addresses
 
-When an [emitter dimension](./generator-emitters.md#dimensions) type is `ipaddress`, a random IP address is emitted.
+When an [emitter dimension](./genspec-emitters.md#dimensions) type is `ipaddress`, a random IP address is emitted.
 
 | Field | Description | Possible values | Required? | Default |
 |---|---|---|---|---|
@@ -30,7 +30,7 @@ In this example, there are two states: `getting` and `posting`.
 
 The `transitions` for each of the `states` ensure there is a mixed probability of switching between `posting` and `getting`.
 
-The emitter configurations `example_event_1` and `example_event_2` are associated with `getting` and `posting` respectively.
+The emitters `example_event_1` and `example_event_2` are associated with `getting` and `posting` respectively.
 
 Both `getting` and `posting` will generate:
 

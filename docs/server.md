@@ -8,7 +8,7 @@ docker run -d -p 9999:9999 imply/datagen:latest
 The server provides the following APIs:
 
 ### list
-Lists the data generation configurations available on the server.
+Lists the data generator specifications available on the server.
 Example:
 ```
 curl "http://localhost:9999/list"
@@ -19,14 +19,14 @@ Output:
 ```
 
 ### /start
-Initiates a data generation process with the specified configuration. The configuration can be selected from the available configurations by using the `config_file` property in the request. Alternatively, a custom configuration can be provided in the `config` property.
+Initiates a data generation process with the specified specification. The specification can be selected from the available specifications by using the `config_file` property in the request. Alternatively, a custom specification can be provided in the `config` property.
 The payload for this request has the following format:
 ```json
 {
     "name": "<job name>",
     "target": "<target specification>",
-    "config": "<config JSON>",
-    "config_file": "<name of the config file on the server>",
+    "config": "<generator specification JSON>",
+    "config_file": "<name of the generator specification file on the server>",
     "total_events": "<total number of messages to generate>",
     "concurrency": "<max number of concurrent state machines>",
     "time": "<duration for data generation>",
@@ -36,8 +36,8 @@ The payload for this request has the following format:
 Where:
 - _"name"_ - (required) unique name for the job
 - _"target"_ - (required) describes where to publish generated data.
-- _"config"_ - (_config_ or _config_file_ required) custom configuration object.
-- _"config_file"_ - (_config_ or _config_file_ required) [predefined configuration](###GET_/list) is used.
+- _"config"_ - (_config_ or _config_file_ required) custom generator specification JSON object.
+- _"config_file"_ - (_config_ or _config_file_ required) [predefined specification](###GET_/list) is used.
 - _"total_events"_ - (optional) total number of events to generate
 - _"time"_ - (optional) total duration to run specified in seconds, minutes or hours (ex. "15s", "10m", "5h")
 - _"concurrency"_ - (optional) max number of state machines to create
