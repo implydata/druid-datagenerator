@@ -1,56 +1,44 @@
-## Generation configuration
+## Generator specifications
 
-Control the behavior of the data generator using a JSON configuration object.
+Control the behavior of the data generator using a JSON configuration object known as the "Generator Specification". See the `config_file` folder for [examples](../config_file/examples).
 
-The `config_file` folder contains a number of [examples](../config_file/examples) of configuration files.
+The data generator operates in one of two modes:
 
-If you are using the generator from the command-line, store the configuration in a file inside `config_file` folder, and reference it by name in the `-c` argument.
-
-In this example, the `generator_config.json` file has been stored inside the `config_file` folder. The following command is then run from the command line in the repo root. Note that the `-c` argument excludes the `config_file` folder name as it is relative.
-
-```
-python generator/DruidDataDriver.py -c config.json -o target.json -t 5M
-```
-
-Do not mix generator configuration and [generator targets](./target.md). From the command line, use the `-o` argument with a separate target configuration file.
-
-## Generator types
-
-The data generator operates in one of two modes. Select which mode to use by setting the top-level `type` field in your generator configuration.
-
-* [`generator`](#generator) (default), useful for synthetic event generation.
+* [`generator`](#generator), useful for synthetic event generation.
 * [`replay`](#replay), useful for both synthetic and trace-based event generation.
+
+When not specified, the generator defaults to using `generator` mode.
 
 ### `generator`
 
-In `generator` mode, [state machines](./generator-states.md) generate events, instantiated based on [`interarrival`](./generator-interarrival.md) times.
+In `generator` mode, workers traverse a number of [`states`](./generator-states.md) and generates events as they go using [`emitters`](./genspec-emitters.md). Workers are created periodically, according to the [`interarrival`](./genspec-interarrival.md) time.
 
-This is the default type, and will be used if no `type` is supplied in the generator configuration.
+DO NOT include `type` in the generator specification when using `generator` mode.
+
+This is the default mode, and will be used if no `type` is supplied in the generator configuration.
 
 | Object | Description | Options | Required? |
 |---|---|---|---|
-| `type` | The type of generator to use. | `generator` | No |
 | [`states`](./generator-states.md) | A list of states that will be used to generate events. | See [`states`](./generator-states.md) | Yes |
 | [`emitters`](./generator-emitters.md) | A list of emitters. | See [`emitters`](./generator-emitters.md) | Yes |
+| [`target`](./tarspec.md) | A target specification. | See [`targets`](./tarspec.md) | No |
 | [`interarrival`](./generator-interarrival.md) | The period of time that elapses between one event being emitted and the next. | See [`interarrival`](./generator-interarrival.md) | Yes |
 
+In this example, there is just one state: `state_1`. When each worker reaches that state, it uses the `example_record_1` emitter to produce an event with one field called `enum_dim`, where the possible values of that field are selected using a uniform distribution from a list of characters. `target` provides an inline [target specification](./tarspec.md), causing the output to be sent to `stdout`.
 
-In this example, there is just one state: `state_1`. When that state is reached, the `example_record_1` emitter produces an event with one field called `enum_dim` where the possible values of that field are selected using a uniform distribution from a list of characters.
+There is then a `delay` of 5 seconds before a worker picks the next state from a list of possible `transitions`. In this specification, because the `next` state is the same as the current state, the worker repeatedly enters this state until the generator itself stops.
 
-There is then a `delay` of 1 second and the next state is selected from a list of possible `transitions`. In this configuration, because the `next` state is the same as the current state, this process repeats until the generator itself stops.
+The `interarrival` delay causes new workers to be spawned once every second.
 
-The `interarrival` section ensures that the events themselves are spaced apart in 1-second intervals.
-
-```
+```json
 {
-  "type": "generator",
   "states": [
     {
       "name": "state_1",
       "emitter": "example_record_1",
       "delay": {
         "type": "constant",
-        "value": 1
+        "value": 5
       },
       "transitions": [
         {
@@ -81,12 +69,48 @@ The `interarrival` section ensures that the events themselves are spaced apart i
       ]
     }
   ],
-  "interarrival": {
-     "type": "constant",
-     "value": 1
-  }
+  "target": { "type" : "stdout"},
+  "interarrival": { "type": "constant", "value": 1 }
 }
 ```
+
+Try this out by saving the above to `example.json` within the `config_file` folder.
+
+The following command will create 10 records and use only one worker:
+
+```bash
+python3 generator/DruidDataDriver.py -f example.json -n 10 -m 1
+```
+
+This causes the following output.  Notice that each row is spaced 5 seconds apart, since only one worker is generating results.
+
+```json
+{"time":"2025-02-18T09:32:16.416","enum_dim":"A"}
+{"time":"2025-02-18T09:32:21.426","enum_dim":"C"}
+{"time":"2025-02-18T09:32:26.429","enum_dim":"B"}
+{"time":"2025-02-18T09:32:31.434","enum_dim":"C"}
+{"time":"2025-02-18T09:32:36.440","enum_dim":"B"}
+{"time":"2025-02-18T09:32:41.444","enum_dim":"C"}
+{"time":"2025-02-18T09:32:46.449","enum_dim":"B"}
+{"time":"2025-02-18T09:32:51.453","enum_dim":"A"}
+{"time":"2025-02-18T09:32:56.459","enum_dim":"A"}
+{"time":"2025-02-18T09:33:01.464","enum_dim":"B"}
+```
+
+When run with the `-m 3`, 3 workers are spawned. Since `interarrival` is a `constant` of 1 second, one worker is spawned every second, meaning that rows 1 through 3 are each from different worker threads, and rows 4 through 6 are those workers in their second state, 7 through 9 in their third state, and so on.
+
+```json
+{"time":"2025-02-18T09:35:49.618","enum_dim":"A"}
+{"time":"2025-02-18T09:35:50.623","enum_dim":"B"}
+{"time":"2025-02-18T09:35:51.629","enum_dim":"C"}
+{"time":"2025-02-18T09:35:54.626","enum_dim":"B"}
+{"time":"2025-02-18T09:35:55.626","enum_dim":"C"}
+{"time":"2025-02-18T09:35:56.635","enum_dim":"A"}
+{"time":"2025-02-18T09:35:59.632","enum_dim":"A"}
+{"time":"2025-02-18T09:36:00.627","enum_dim":"C"}
+{"time":"2025-02-18T09:36:01.640","enum_dim":"A"}
+{"time":"2025-02-18T09:36:04.635","enum_dim":"A"}
+``
 
 ### `replay`
 

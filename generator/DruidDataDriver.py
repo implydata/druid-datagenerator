@@ -1094,7 +1094,7 @@ class DataDriver:
                 else:
                     self.do_time_skips = False
             elif config['type']=='generator':
-                pass # Quick fix to pass specifications that contain "type":"generator"
+                self.type=config['type'] # Quick fix to pass specifications that contain "type":"generator"
             else:
                 msg = f"Error: Unknown `type` = {config['type']}."
                 raise Exception(msg)
