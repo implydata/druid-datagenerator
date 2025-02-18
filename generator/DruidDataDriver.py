@@ -1093,6 +1093,8 @@ class DataDriver:
                         raise Exception(msg)
                 else:
                     self.do_time_skips = False
+            elif config['type']=='generator':
+                pass # Quick fix to pass specifications that contain "type":"generator"
             else:
                 msg = f"Error: Unknown `type` = {config['type']}."
                 raise Exception(msg)
@@ -1312,7 +1314,7 @@ def main():
     config_file_name = f'config_file/{args.config_file}'
     target_file_name = args.target_file
     runtime = args.time
-    max_entities = args.concurrency
+    max_entities = int(args.concurrency) # Convert to integer. Safe as there is a default.
     total_recs = None
     if args.n_recs is not None:
         total_recs = int(args.n_recs)
