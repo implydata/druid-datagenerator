@@ -1047,58 +1047,57 @@ class DataDriver:
         # This generator will
         # - read the first line in the file to find the starting timestamp and save that
         # - it will then emit events with the generator time such that the events have the same cadence as the original file
-        if 'type' in config.keys():
-            if config['type']=='replay':
-                self.type=config['type']
-                if 'source_file' in config.keys():
-                    self.replay_file = config['source_file']
-                else:
-                    msg='Error: "type" = `replay` requires a "source_file".'
-                    raise Exception(msg)
-                if 'source_format' in config.keys():
-                    self.source_format = config['source_format']
-                else:
-                    self.source_format = 'csv' # default to csv as it is the only supported format for now
+        self.type='generator'
 
-                if 'time_field' in config.keys():
-                    self.time_field = config['time_field']
-                else:
-                    msg = 'Error: "type" = `replay` requires a the specification of a "time_field".'
-                    raise Exception(msg)
-                if 'time_format' in config.keys():
-                    self.time_format = config['time_format']
-                else:
-                    print('Info: time_format was not specified, using default "%Y-%m-%d %H:%M:%S" which is for timestamps in the form "YYYY-MM-DD hh:mm:ss". See https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes for accepted format values.')
-                    self.time_format = '%Y-%m-%d %H:%M:%S'
-                if 'null_injection' in config.keys():
-                    self.do_null_injection = True
-                    self.null_injections = config['null_injection']
-                    msg = 'Error: "null_injection" must be an array in the form: [{"field":"field1","null_probability":0.05},{"field":"field2", "null_probability":0.01}].'
-                    if not isinstance(self.null_injections, list):
-                        raise Exception(msg)
-                    else:
-                        for injection in self.null_injections:
-                            if not isinstance(injection, dict) or 'field' not in injection.keys() or 'null_probability' not in injection.keys():
-                                raise Exception(msg)
-                else:
-                    self.do_null_injection = False
-                if 'time_skipping' in config.keys():
-                    self.do_time_skips = True
-                    self.time_skip_config = config['time_skipping']
-                    if not isinstance(self.time_skip_config, dict) \
-                        or 'skip_probability' not in self.time_skip_config.keys() \
-                        or 'min_skip_duration' not in self.time_skip_config.keys() \
-                        or 'max_skip_duration' not in self.time_skip_config.keys():
-                        msg='Error: "time_skipping" must have the form: {"skip_probability": 0.01, "min_skip_duration": 5, "max_skip_duration": 300}"'
-                        raise Exception(msg)
-                else:
-                    self.do_time_skips = False
-            elif config['type']=='generator':
-                self.type=config['type'] # Quick fix to pass specifications that contain "type":"generator"
+        if 'type' in config.keys():
+            self.type=config['type']
+
+        if self.type=='replay':        
+            if 'source_file' in config.keys():
+                self.replay_file = config['source_file']
             else:
-                msg = f"Error: Unknown `type` = {config['type']}."
+                msg='Error: "type" = `replay` requires a "source_file".'
                 raise Exception(msg)
-        else:
+            if 'source_format' in config.keys():
+                self.source_format = config['source_format']
+            else:
+                self.source_format = 'csv' # default to csv as it is the only supported format for now
+
+            if 'time_field' in config.keys():
+                self.time_field = config['time_field']
+            else:
+                msg = 'Error: "type" = `replay` requires a the specification of a "time_field".'
+                raise Exception(msg)
+            if 'time_format' in config.keys():
+                self.time_format = config['time_format']
+            else:
+                print('Info: time_format was not specified, using default "%Y-%m-%d %H:%M:%S" which is for timestamps in the form "YYYY-MM-DD hh:mm:ss". See https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes for accepted format values.')
+                self.time_format = '%Y-%m-%d %H:%M:%S'
+            if 'null_injection' in config.keys():
+                self.do_null_injection = True
+                self.null_injections = config['null_injection']
+                msg = 'Error: "null_injection" must be an array in the form: [{"field":"field1","null_probability":0.05},{"field":"field2", "null_probability":0.01}].'
+                if not isinstance(self.null_injections, list):
+                    raise Exception(msg)
+                else:
+                    for injection in self.null_injections:
+                        if not isinstance(injection, dict) or 'field' not in injection.keys() or 'null_probability' not in injection.keys():
+                            raise Exception(msg)
+            else:
+                self.do_null_injection = False
+            if 'time_skipping' in config.keys():
+                self.do_time_skips = True
+                self.time_skip_config = config['time_skipping']
+                if not isinstance(self.time_skip_config, dict) \
+                    or 'skip_probability' not in self.time_skip_config.keys() \
+                    or 'min_skip_duration' not in self.time_skip_config.keys() \
+                    or 'max_skip_duration' not in self.time_skip_config.keys():
+                    msg='Error: "time_skipping" must have the form: {"skip_probability": 0.01, "min_skip_duration": 5, "max_skip_duration": 300}"'
+                    raise Exception(msg)
+            else:
+                self.do_time_skips = False
+
+        elif self.type=='generator':
             #
             # Set up the interarrival rate
             #
@@ -1135,6 +1134,10 @@ class DataDriver:
                 self.states[name] = this_state
                 if self.initial_state == None:
                     self.initial_state = this_state
+        else:
+            msg = f"Error: Unknown `type` = {self.type}."
+            raise Exception(msg)
+
 
 
     def create_record(self, dimensions, variables):
