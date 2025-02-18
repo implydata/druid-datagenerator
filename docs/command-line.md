@@ -2,13 +2,13 @@
 
 Run the `DruidDataDriver.py` script from the command line to create synthetic data in JSON format.
 
-```
-python generator/DruidDataDriver.py
-		-f <generator specification file
-		-m <generator workers limit>
-		-o <target specification file>
-		-s <start timestamp>
-		-n <record limit>
+```bash
+python generator/DruidDataDriver.py \
+		-f <generator specification file> \
+		-m <generator workers limit> \
+		-o <target specification file> \
+		-s <start timestamp> \
+ 		-n <record limit> \
 		-t <duration limit>
 ```
 
@@ -25,7 +25,7 @@ python generator/DruidDataDriver.py
 
 The data generator requires Python 3.
 
-```
+```bash
 apt-get install python3
 apt-get update
 apt-get install -y python3-pip
@@ -33,7 +33,7 @@ apt-get install -y python3-pip
 
 The data generator has dependencies on a number of modules. Run the following commands to prepare your Python environment.
 
-```
+```bash
 pip install confluent-kafka
 pip install python-dateutil
 pip install kafka-python
@@ -69,19 +69,19 @@ Time durations may be specified in terms of seconds, minutes or hours.
 
 For example, specify 30 seconds as follows:
 
-```
+```bash
 python generator/DruidDataDriver.py -c generator_spec.json -o target_spec.json -t 30S
 ```
 
 Specify 10 minutes as follows:
 
-```
+```bash
 python generator/DruidDataDriver.py -c generator_spec.json -o target_spec.json -t 10M
 ```
 
 Or, specify 1 hour as follows:
 
-```
+```bash
 python generator/DruidDataDriver.py -c generator_spec.json -o target_spec.json -t 1H
 ```
 
@@ -89,7 +89,7 @@ python generator/DruidDataDriver.py -c generator_spec.json -o target_spec.json -
 
 Use `-n` to limit generation to a number of records.
 
-```
+```bash
 python generator/DruidDataDriver.py -c generator_spec.json -o target_spec.json -n 1000
 ```
 
@@ -99,7 +99,7 @@ Specify a start time in ISO format to instruct the driver to use simulated time 
 
 In the following example, the constraint is the number of records.
 
-```
+```bash
 python3 generator/DruidDataDriver.py -f example.json -o stdout.json -n 20 -s "2001-12-20T13:13"
 ```
 
@@ -110,7 +110,7 @@ python3 generator/DruidDataDriver.py -f example.json -o stdout.json -n 20 -s "20
 
 This results in:
 
-```
+```json
 {"time":"2001-12-20T13:13:12.132","server":"127.0.0.5","client":"63.211.68.115","endpoint":"GET /api/users/73/contributions","response_time_ms":326}
 {"time":"2001-12-20T13:13:17.464","server":"127.0.0.3","client":"79.58.216.203","endpoint":"GET /api/search?q=quantum-mechanics","response_time_ms":262}
 {"time":"2001-12-20T13:13:20.776","server":"127.0.0.4","client":"96.54.85.35","endpoint":"GET /api/categories","response_time_ms":75}
@@ -120,7 +120,7 @@ This results in:
 
 In the next example, the constraint is duration. This will cause the generator to create as many JSON records as would fit into a given duration (see `-t` below).
 
-```
+```bash
 python3 generator/DruidDataDriver.py -f example.json -o stdout.json -t 1h -s "2027-03-12"
 ```
 
@@ -129,7 +129,7 @@ python3 generator/DruidDataDriver.py -f example.json -o stdout.json -t 1h -s "20
 
 The result is a list of events spanning an hour from the time given in `-s`. This is therefore recommended when generating large volumes of data.
 
-```
+```json
 {"time":"2027-03-12T00:00","server":"127.0.0.6","client":"60.138.23.232","endpoint":"GET /api/articles/102/history","response_time_ms":405}
 {"time":"2027-03-12T00:00:06.157","server":"127.0.0.6","client":"73.198.96.12","endpoint":"GET /api/articles","response_time_ms":210}
 {"time":"2027-03-12T00:00:06.623","server":"127.0.0.4","client":"87.21.26.43","endpoint":"GET /api/articles/42","response_time_ms":445}
