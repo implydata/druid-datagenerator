@@ -1,6 +1,6 @@
 ## Synthetic integers
 
-When an [emitter dimension](./genspec-emitters.md#dimensions) type is `int`, a random whole number is generated.
+When a [field generator](./fieldgen.md) type is `int`, a random integer is created.
 
 | Field | Description | Possible values | Required? | Default |
 |---|---|---|---|---|

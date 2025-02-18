@@ -1,6 +1,6 @@
 ## Synthetic floating point numbers
 
-When an [emitter dimension](./genspec-emitters.md#dimensions) type is `float`, random floating point numbers are generated.
+When a [field generator](./fieldgen.md) type is  `float`, random floating point numbers are created.
 
 | Field | Description | Possible values | Required? | Default |
 |---|---|---|---|---|

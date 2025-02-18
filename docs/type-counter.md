@@ -1,6 +1,6 @@
 ## Synthetic counters
 
-When an [emitter dimension](./genspec-emitters.md#dimensions) type is `counter`, the value is increment each time they are output.
+When a [field generator](./fieldgen.md) type is `counter`, an integer is created that increments with every generation.
 
 Counters are not incremented when missing or null.
 

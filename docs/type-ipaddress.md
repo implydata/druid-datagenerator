@@ -1,6 +1,6 @@
 ## Synthetic IP addresses
 
-When an [emitter dimension](./genspec-emitters.md#dimensions) type is `ipaddress`, a random IP address is emitted.
+When a [field generator](./fieldgen.md) type is `ipaddress`, a random IP address is created.
 
 | Field | Description | Possible values | Required? | Default |
 |---|---|---|---|---|
