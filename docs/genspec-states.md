@@ -1,4 +1,4 @@
-## Generator states
+## Worker states
 
 When the worker reaches a state, the following happens:
 
