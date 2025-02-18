@@ -13,7 +13,7 @@ python generator/DruidDataDriver.py
 ```
 
 | Argument | Description |
-|---|---|---|
+|---|---|
 | [`-f`](#generator-specification) | The name of the file in the `config_file` folder containing the [generator specification](#generator-specification).|
 | [`-m`](#generator-specification) | The maximum number of workers to create. Defaults to 100. |
 | [`-o`](#target-specification) | The name of the file that contains the [target definition](#target.md). |
