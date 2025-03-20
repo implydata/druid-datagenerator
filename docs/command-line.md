@@ -70,19 +70,19 @@ Time durations may be specified in terms of seconds, minutes or hours.
 For example, specify 30 seconds as follows:
 
 ```bash
-python generator/DruidDataDriver.py -c generator_spec.json -o target_spec.json -t 30S
+python generator/DruidDataDriver.py -f generator_spec.json -o target_spec.json -t 30S
 ```
 
 Specify 10 minutes as follows:
 
 ```bash
-python generator/DruidDataDriver.py -c generator_spec.json -o target_spec.json -t 10M
+python generator/DruidDataDriver.py -f generator_spec.json -o target_spec.json -t 10M
 ```
 
 Or, specify 1 hour as follows:
 
 ```bash
-python generator/DruidDataDriver.py -c generator_spec.json -o target_spec.json -t 1H
+python generator/DruidDataDriver.py -f generator_spec.json -o target_spec.json -t 1H
 ```
 
 #### Limit generation to a number of records
@@ -90,7 +90,7 @@ python generator/DruidDataDriver.py -c generator_spec.json -o target_spec.json -
 Use `-n` to limit generation to a number of records.
 
 ```bash
-python generator/DruidDataDriver.py -c generator_spec.json -o target_spec.json -n 1000
+python generator/DruidDataDriver.py -f generator_spec.json -o target_spec.json -n 1000
 ```
 
 ### Simulated clock
