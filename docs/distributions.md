@@ -51,7 +51,7 @@ To generate values following an exponential distribution around the mean, use `e
 
 The data generator rounds down values that exceed the length of any list. Exercise special caution when using `exponential` in a `cardinality_distribution` as this may produce a distorted distribution.
 
-#### `normal`
+#### `normal`
 
 Normal distributions generate values with a normal (i.e., bell-shaped) distribution.
 
