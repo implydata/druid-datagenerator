@@ -1,18 +1,11 @@
-# Imply data generator
+# Druid data generator
 
-A highly customizable event data generator, created by the team at Imply.
+__NOTICE__
+This repository is no longer being regularly maintained.
 
 ## Running the generator
 
 You can use the generator in a number of ways:
 
 * Using Python 3 from the [command line](docs/command-line.md)
-* By running a [Docker container](docs/server.md) that surfaces APIs
-
-## Contributing
-
-You are invited to make all manner of contributions to this project, including:
-
-* New types of emitter dimension type.
-* Sample specification files.
-
+* By running a [Docker container](docs/server.md) that surfaces APIs via Flask
